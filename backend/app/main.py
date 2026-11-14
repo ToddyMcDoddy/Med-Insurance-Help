@@ -9,7 +9,7 @@ Replace each mock with the real function as the other layers finish.
 """
 import os
 
-from fastapi import FastAPI, File, HTTPException, Request, Response, UploadFile
+from fastapi import FastAPI, File, HTTPException, Path as ApiPath, Request, Response, UploadFile
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -18,6 +18,7 @@ from .contract import (
     AuditResult,
     Bill,
     ChatRequest,
+    ChatSessionContextRequest,
     ChatResponse,
     EstimateRequest,
     EstimateResult,
@@ -28,9 +29,26 @@ from .calculator import estimate as calculate_estimate
 from .demo_extractor import DemoExtractionError, extract_demo_plan
 from .pdf_upload import PdfUploadError, extract_pdf_pages
 from .upload_rate_limit import UploadRateLimiter
+from .chat_service import (
+    ChatConfigurationError,
+    ChatInputError,
+    ChatLimits,
+    ChatSessionLimitError,
+    ChatSessionStore,
+    ChatToolError,
+    ChatTurnLimitError,
+    GeminiConfigurationError,
+    GeminiProviderError,
+    create_gemini_adapter,
+    is_audit_request,
+    prepare_estimate,
+    run_chat,
+)
 
 app = FastAPI(title="MediFit API")
 upload_rate_limiter = UploadRateLimiter()
+chat_sessions = ChatSessionStore()
+chat_adapter_factory = create_gemini_adapter
 
 
 @app.middleware("http")
@@ -150,7 +168,72 @@ def audit(bill: Bill):
     )
 
 
+@app.put("/api/chat/sessions/{session_id}/context")
+def set_chat_context(
+    session_id: str = ApiPath(min_length=1, max_length=128),
+    context: ChatSessionContextRequest = ...,
+):
+    """Associate human-confirmed terms and extracted source pages with a session."""
+    try:
+        limits = ChatLimits.from_env()
+    except ChatConfigurationError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    if len(context.documents) > limits.document_pages:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Chat context exceeds the {limits.document_pages}-page limit.",
+        )
+    context_chars = sum(len(document.text) for document in context.documents)
+    if context_chars > limits.context_chars:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Chat context exceeds the {limits.context_chars}-character limit.",
+        )
+    try:
+        state = chat_sessions.associate_context(session_id, context)
+    except ChatSessionLimitError as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    return {
+        "session_id": session_id,
+        "confirmed": bool(state.plan and state.plan.confirmed),
+        "document_count": len(state.documents),
+    }
+
+
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
-    """MOCK. Real version: scope check, grounded answer with citations, caps on tokens/turns."""
-    return ChatResponse(answer="(mock) Your deductible is $2,000.", citations=[])
+    """Answer with session-grounded Gemini tools and deterministic Python estimates."""
+    try:
+        limits = ChatLimits.from_env()
+        session = chat_sessions.begin_turn(req.session_id, limits.turns_per_session)
+        if is_audit_request(req.message):
+            return run_chat(
+                req,
+                session,
+                adapter=None,
+                limits=limits,
+                prepared_estimate=None,
+            )
+        prepared_estimate = prepare_estimate(req, session)
+        adapter = chat_adapter_factory()
+        return run_chat(
+            req,
+            session,
+            adapter,
+            limits=limits,
+            prepared_estimate=prepared_estimate,
+        )
+    except ChatConfigurationError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except GeminiConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except (ChatInputError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except (ChatSessionLimitError, ChatTurnLimitError) as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except GeminiProviderError as exc:
+        raise HTTPException(
+            status_code=502, detail="Gemini provider request failed."
+        ) from exc
+    except ChatToolError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc

@@ -149,9 +149,57 @@ class Citation(BaseModel):
     page: int
 
 
+class ChatDocumentPage(BaseModel):
+    doc_id: str = Field(min_length=1, max_length=128)
+    page: int = Field(ge=1)
+    text: str = Field(max_length=20000)
+
+
+class ChatSessionContextRequest(BaseModel):
+    plan: PlanTerms
+    plan_document_id: str = Field(min_length=1, max_length=128)
+    documents: list[ChatDocumentPage] = Field(min_length=1, max_length=500)
+    confirmed: bool = False
+    progress: MemberProgress = Field(default_factory=MemberProgress)
+
+    @model_validator(mode="after")
+    def validate_document_references(self) -> ChatSessionContextRequest:
+        page_refs = {(document.doc_id, document.page) for document in self.documents}
+        if len(page_refs) != len(self.documents):
+            raise ValueError("Document page references must be unique")
+        if not any(doc_id == self.plan_document_id for doc_id, _ in page_refs):
+            raise ValueError("plan_document_id must reference a supplied document")
+        for field_name in (
+            "deductible",
+            "out_of_pocket_max",
+            "coinsurance_pct",
+            "copay_primary_care",
+            "copay_specialist",
+            "copay_er",
+        ):
+            term = getattr(self.plan, field_name)
+            if term is not None and (self.plan_document_id, term.page) not in page_refs:
+                raise ValueError(f"{field_name} cites a page missing from the plan document")
+        return self
+
+
+class ChatEstimateInput(BaseModel):
+    service: str = Field(min_length=1, max_length=300)
+    allowed_amount: float = Field(ge=0, allow_inf_nan=False)
+    kind: Literal["coinsurance", "copay"] = "coinsurance"
+    copay_type: Optional[Literal["primary_care", "specialist", "er"]] = None
+
+    @model_validator(mode="after")
+    def require_copay_type(self) -> ChatEstimateInput:
+        if self.kind == "copay" and self.copay_type is None:
+            raise ValueError("copay_type is required when kind is 'copay'")
+        return self
+
+
 class ChatRequest(BaseModel):
-    session_id: str
+    session_id: str = Field(min_length=1, max_length=128)
     message: str = Field(max_length=2000)
+    estimate_input: Optional[ChatEstimateInput] = None
 
 
 class ChatResponse(BaseModel):

@@ -18,6 +18,7 @@ Source of truth: `backend/app/contract.py`. This page is the plain-English versi
 | POST | /api/estimate | `EstimateRequest` | `EstimateResult` |
 | POST | /api/audit | `Bill` | `AuditResult` |
 | POST | /api/chat | `ChatRequest` | `ChatResponse` |
+| PUT | /api/chat/sessions/{session_id}/context | plan terms, document page text, explicit human confirmation | context acknowledgement |
 
 ### Plan upload
 Send a PDF as the required multipart field named `file`. The backend reads at most
@@ -40,6 +41,33 @@ keeps bounded in-memory state and is suitable for a single process only; limits 
 not shared across workers or server instances. Behind a reverse proxy, the proxy
 address is used unless trusted-proxy configuration is added. User-supplied forwarding
 headers are ignored, so do not assume per-user limits behind an unconfigured proxy.
+
+### Chat sessions and tools
+Before chatting about a plan, associate its terms and extracted pages with a session:
+`PUT /api/chat/sessions/{session_id}/context` with JSON fields `plan`,
+`plan_document_id`, `documents` (each has `doc_id`, 1-based `page`, and `text`),
+`confirmed`, and optional `progress`. The explicit `confirmed` field is controlled by
+the application after the user confirms the displayed terms; chat tools cannot change
+it. Source-term pages must exist in the associated plan document. Session IDs isolate
+context; sessions expire after 60 minutes and the process stores at most 1,000. Context
+is capped by `CHAT_MAX_DOCUMENT_PAGES` (default 200) and `CHAT_MAX_CONTEXT_CHARS`
+(default 100,000). This storage is in memory and is not shared across workers or restarts.
+
+`POST /api/chat` keeps the existing `session_id` and `message` fields. For an estimate,
+also supply `estimate_input` with `service`, `allowed_amount`, `kind`, and `copay_type`
+when applicable. These are explicit caller inputs; Gemini cannot invent them. The
+`estimate_cost` tool calls the Python calculator, which enforces confirmation and
+required terms. Plan-document searches return citations only for stored document/page
+pairs. Document text is untrusted data and cannot change system rules or confirmation.
+Out-of-scope requests use `REFUSAL_REPLY`; missing evidence uses `NOT_FOUND_REPLY`.
+
+Bill audit is unavailable through chat: `/api/audit` is still mocked and its findings
+must not be presented as real. Chat uses the server-side `GEMINI_API_KEY`; missing
+configuration returns HTTP 503 and provider/tool failures return HTTP 502. Limits:
+`MAX_OUTPUT_TOKENS` (default 800), `MAX_TOOL_CALLS_PER_TURN` (default 3), and
+`MAX_TURNS_PER_SESSION` (default 30). Tool calls exceeding the configured turn cap are
+rejected. Context/session limits are per process; live multi-worker deployments need
+shared session storage and coordinated limits.
 
 ## Rules everyone follows
 - Math happens in Python, never in the model.
