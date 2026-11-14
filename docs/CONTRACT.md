@@ -19,14 +19,27 @@ Source of truth: `backend/app/contract.py`. This page is the plain-English versi
 | POST | /api/audit | `Bill` | `AuditResult` |
 | POST | /api/chat | `ChatRequest` | `ChatResponse` |
 
-### Plan upload (temporary behavior)
-Send the PDF as the required multipart field named `file`. The backend reads at most
-`MAX_UPLOAD_MB` plus one byte to detect oversized uploads; the default limit is 5 MB.
-Empty, malformed, encrypted, or textless PDFs receive HTTP 400, and oversized files
-receive HTTP 413. A readable text PDF currently receives HTTP 501 with
-`Plan extraction is not connected yet.` The upload is processed in memory and closed;
-no plan terms are returned until extraction is integrated. The eventual successful
-response remains `PlanTerms` with `confirmed=false`.
+### Plan upload
+Send a PDF as the required multipart field named `file`. The backend reads at most
+`MAX_UPLOAD_MB` plus one byte (default 5 MB). Empty, malformed, encrypted, textless,
+or unknown demo PDFs receive HTTP 400; oversized files receive HTTP 413. Uploads over
+`RATE_LIMIT_PER_MIN` (default 20 per minute) receive HTTP 429 with a `Retry-After`
+header. A readable PDF receives HTTP 501 with `Plan extraction is not connected yet.`
+when extraction is disabled.
+
+Set `EXTRACTOR_MODE=demo` to enable fixture extraction. Demo mode recognizes only the
+bundled synthetic PDFs by SHA-256 of their bytes, independent of the uploaded filename.
+It returns the matching `PlanTerms` with `confirmed=false` and the response header
+`X-MediFit-Extraction-Mode: demo`. These are fixture answers from `expected_terms.json`,
+not AI extraction or evidence of extraction accuracy. Unknown PDFs are rejected; no
+sample plan is substituted. Leave `EXTRACTOR_MODE` unset or set it to `disabled` to
+keep the HTTP 501 behavior. Demo setup: `cd backend && EXTRACTOR_MODE=demo .venv/bin/uvicorn app.main:app --reload`.
+
+The rate limiter uses the server-provided direct client address and monotonic time. It
+keeps bounded in-memory state and is suitable for a single process only; limits are
+not shared across workers or server instances. Behind a reverse proxy, the proxy
+address is used unless trusted-proxy configuration is added. User-supplied forwarding
+headers are ignored, so do not assume per-user limits behind an unconfigured proxy.
 
 ## Rules everyone follows
 - Math happens in Python, never in the model.

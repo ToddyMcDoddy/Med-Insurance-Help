@@ -9,7 +9,7 @@ Replace each mock with the real function as the other layers finish.
 """
 import os
 
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, Response, UploadFile
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -25,9 +25,39 @@ from .contract import (
     PlanTerms,
 )
 from .calculator import estimate as calculate_estimate
+from .demo_extractor import DemoExtractionError, extract_demo_plan
 from .pdf_upload import PdfUploadError, extract_pdf_pages
+from .upload_rate_limit import UploadRateLimiter
 
 app = FastAPI(title="MediFit API")
+upload_rate_limiter = UploadRateLimiter()
+
+
+@app.middleware("http")
+async def limit_plan_uploads(request: Request, call_next):
+    if request.method == "POST" and request.url.path == "/api/upload/plan":
+        try:
+            limit = int(os.getenv("RATE_LIMIT_PER_MIN", "20"))
+        except ValueError:
+            return JSONResponse(
+                status_code=500,
+                content={"detail": "Invalid RATE_LIMIT_PER_MIN configuration."},
+            )
+        if limit <= 0:
+            return JSONResponse(
+                status_code=500,
+                content={"detail": "RATE_LIMIT_PER_MIN must be a positive integer."},
+            )
+
+        client_address = request.client.host if request.client else "unknown"
+        retry_after = upload_rate_limiter.check(client_address, limit)
+        if retry_after is not None:
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Upload rate limit exceeded. Try again later."},
+                headers={"Retry-After": str(retry_after)},
+            )
+    return await call_next(request)
 
 
 @app.exception_handler(RequestValidationError)
@@ -56,10 +86,11 @@ def health():
     responses={
         400: {"description": "The uploaded PDF is invalid or unreadable."},
         413: {"description": "The uploaded PDF exceeds MAX_UPLOAD_MB."},
+        429: {"description": "The upload rate limit was exceeded; see Retry-After."},
         501: {"description": "Plan extraction is not connected yet."},
     },
 )
-async def upload_plan(file: UploadFile = File(...)):
+async def upload_plan(response: Response, file: UploadFile = File(...)):
     """Validate and read a plan PDF in memory pending extraction integration."""
     try:
         try:
@@ -81,6 +112,14 @@ async def upload_plan(file: UploadFile = File(...)):
             extract_pdf_pages(pdf_bytes)
         except PdfUploadError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        if os.getenv("EXTRACTOR_MODE", "disabled") == "demo":
+            try:
+                plan = extract_demo_plan(pdf_bytes)
+            except DemoExtractionError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+            response.headers["X-MediFit-Extraction-Mode"] = "demo"
+            return plan
 
         raise HTTPException(status_code=501, detail="Plan extraction is not connected yet.")
     finally:
