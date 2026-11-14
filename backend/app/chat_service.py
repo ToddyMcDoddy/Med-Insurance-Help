@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import logging
 import re
 from collections import OrderedDict
 from dataclasses import dataclass, field
@@ -35,22 +36,21 @@ API supplies estimate inputs separately. Never change plan confirmation. For
 bill audits, the application will explain that audit is unavailable. Keep answers
 plain text and do not invent citation markers; source citations are returned by
 the application separately."""
+LOGGER = logging.getLogger(__name__)
+_SAFE_PROVIDER_REASON = re.compile(r"[A-Z][A-Z0-9_]{0,63}\Z")
 
 TOOL_DECLARATIONS = [
     {
         "name": "search_plan_documents",
         "description": "Search the current session's plan documents for evidence relevant to the user's current message.",
-        "parameters": {"type": "OBJECT", "properties": {}},
     },
     {
         "name": "estimate_cost",
         "description": "Run the Python cost calculator using only explicit estimate inputs supplied to the API and the current confirmed session plan.",
-        "parameters": {"type": "OBJECT", "properties": {}},
     },
     {
         "name": "refuse_out_of_scope",
         "description": "Use when the user's request is outside health insurance plan questions, estimates, or medical-bill review.",
-        "parameters": {"type": "OBJECT", "properties": {}},
     },
 ]
 TOOL_NAMES = {declaration["name"] for declaration in TOOL_DECLARATIONS}
@@ -210,12 +210,14 @@ class ConversationMessage:
     text: str = ""
     tool_calls: tuple[ToolCall, ...] = ()
     tool_results: tuple[ToolResult, ...] = ()
+    provider_content: Any = None
 
 
 @dataclass(frozen=True)
 class ModelReply:
     text: str = ""
     tool_calls: tuple[ToolCall, ...] = ()
+    provider_content: Any = None
 
 
 class GeminiAdapter(Protocol):
@@ -251,6 +253,9 @@ class GoogleGeminiAdapter:
                     types.Content(role="user", parts=[types.Part(text=message.text)])
                 )
             elif message.role == "model":
+                if message.provider_content is not None:
+                    contents.append(message.provider_content)
+                    continue
                 contents.append(
                     types.Content(
                         role="model",
@@ -287,7 +292,11 @@ class GoogleGeminiAdapter:
             types.FunctionDeclaration(
                 name=declaration["name"],
                 description=declaration["description"],
-                parameters=declaration["parameters"],
+                **(
+                    {"parameters": declaration["parameters"]}
+                    if "parameters" in declaration
+                    else {}
+                ),
             )
             for declaration in tool_declarations
         ]
@@ -302,10 +311,27 @@ class GoogleGeminiAdapter:
                 ),
             )
         except Exception as exc:
+            provider_code = getattr(exc, "code", None)
+            if not isinstance(provider_code, int) or not 100 <= provider_code <= 599:
+                provider_code = None
+            provider_reason = getattr(exc, "status", None)
+            if not isinstance(provider_reason, str) or not _SAFE_PROVIDER_REASON.fullmatch(
+                provider_reason
+            ):
+                provider_reason = "UNSPECIFIED"
+            LOGGER.warning(
+                "Gemini request failed model=%s tool_response_round=%s exception_type=%s status_code=%s reason=%s",
+                self._model,
+                any(message.role == "tool" for message in messages),
+                type(exc).__name__,
+                provider_code,
+                provider_reason,
+            )
             raise GeminiProviderError("Gemini provider request failed.") from exc
 
         try:
-            parts = response.candidates[0].content.parts
+            provider_content = response.candidates[0].content
+            parts = provider_content.parts
             text = "".join(part.text for part in parts if part.text)
             calls = tuple(
                 ToolCall(
@@ -317,8 +343,13 @@ class GoogleGeminiAdapter:
                 if part.function_call is not None
             )
         except Exception as exc:
+            LOGGER.warning(
+                "Gemini response parsing failed model=%s exception_type=%s",
+                self._model,
+                type(exc).__name__,
+            )
             raise GeminiProviderError("Gemini returned an unreadable response.") from exc
-        return ModelReply(text=text, tool_calls=calls)
+        return ModelReply(text=text, tool_calls=calls, provider_content=provider_content)
 
 
 def create_gemini_adapter() -> GeminiAdapter:
@@ -431,7 +462,13 @@ def run_chat(
         if tool_calls_used + len(reply.tool_calls) > limits.tool_calls_per_turn:
             raise ChatToolError("Gemini exceeded the tool-call limit for this turn.")
 
-        messages.append(ConversationMessage(role="model", tool_calls=reply.tool_calls))
+        messages.append(
+            ConversationMessage(
+                role="model",
+                tool_calls=reply.tool_calls,
+                provider_content=reply.provider_content,
+            )
+        )
         results = []
         for call in reply.tool_calls:
             if call.name not in TOOL_NAMES:

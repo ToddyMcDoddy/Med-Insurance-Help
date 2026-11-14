@@ -25,8 +25,9 @@ Send a PDF as the required multipart field named `file`. The backend reads at mo
 `MAX_UPLOAD_MB` plus one byte (default 5 MB). Empty, malformed, encrypted, textless,
 or unknown demo PDFs receive HTTP 400; oversized files receive HTTP 413. Uploads over
 `RATE_LIMIT_PER_MIN` (default 20 per minute) receive HTTP 429 with a `Retry-After`
-header. A readable PDF receives HTTP 501 with `Plan extraction is not connected yet.`
-when extraction is disabled.
+header. With extraction disabled, a readable PDF receives HTTP 501 with
+`Plan extraction is not connected yet.` With Gemini configured but unavailable or
+misconfigured, the endpoint returns a generic HTTP 502 or 503 without provider details.
 
 Set `EXTRACTOR_MODE=demo` to enable fixture extraction. Demo mode recognizes only the
 bundled synthetic PDFs by SHA-256 of their bytes, independent of the uploaded filename.
@@ -35,6 +36,18 @@ It returns the matching `PlanTerms` with `confirmed=false` and the response head
 not AI extraction or evidence of extraction accuracy. Unknown PDFs are rejected; no
 sample plan is substituted. Leave `EXTRACTOR_MODE` unset or set it to `disabled` to
 keep the HTTP 501 behavior. Demo setup: `cd backend && EXTRACTOR_MODE=demo .venv/bin/uvicorn app.main:app --reload`.
+
+Set `EXTRACTOR_MODE=gemini` to run the Gemini plan extractor. It consumes validated
+page text in a worker thread and returns `PlanTerms` with `confirmed=false`; it does
+not use the synthetic expected-terms file. The existing path-based extractor command
+remains available. Live upload setup: `cd backend && EXTRACTOR_MODE=gemini .venv/bin/uvicorn app.main:app --reload`, with `GEMINI_API_KEY` set in the server environment.
+
+To test the upload-to-chat flow, POST a bundled PDF to `/api/upload/plan` using the
+multipart field `file`. After the user reviews and confirms the returned terms, send
+`PUT /api/chat/sessions/{session_id}/context` with those terms, `confirmed: true`,
+`plan_document_id`, and the extracted page text as `documents`. Then POST
+`/api/chat` using the same `session_id` and explicit `estimate_input` where needed.
+The upload endpoint does not confirm the plan or automatically attach session context.
 
 The rate limiter uses the server-provided direct client address and monotonic time. It
 keeps bounded in-memory state and is suitable for a single process only; limits are
@@ -84,3 +97,5 @@ shared session storage and coordinated limits.
 | 2 AI/extraction | Gemini extraction, system prompt, injection guard, 3 insurer profiles, eval script |
 | 3 Calculator/bills | estimate(), duplicate/dispute detection, unit tests, **synthetic PDFs + bills (start now)** |
 | 4 Frontend/infra | UI, Vultr hello-world, Tiger Data, GoDaddy, Entire, README/article |
+
+Live-tested chat configuration: set `GEMINI_MODEL=gemini-3.6-flash` in the server environment. The upload → confirm → chat test returned member_pays=2200 and plan_pays=800 for a $3000 allowed amount.

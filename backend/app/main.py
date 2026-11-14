@@ -9,6 +9,7 @@ Replace each mock with the real function as the other layers finish.
 """
 import os
 
+from anyio import to_thread
 from fastapi import FastAPI, File, HTTPException, Path as ApiPath, Request, Response, UploadFile
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
@@ -28,6 +29,7 @@ from .contract import (
 from .calculator import estimate as calculate_estimate
 from .demo_extractor import DemoExtractionError, extract_demo_plan
 from .pdf_upload import PdfUploadError, extract_pdf_pages
+from .extract_terms import extract_plan_terms_from_pages
 from .upload_rate_limit import UploadRateLimiter
 from .chat_service import (
     ChatConfigurationError,
@@ -127,11 +129,12 @@ async def upload_plan(response: Response, file: UploadFile = File(...)):
             )
 
         try:
-            extract_pdf_pages(pdf_bytes)
+            pages = extract_pdf_pages(pdf_bytes)
         except PdfUploadError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-        if os.getenv("EXTRACTOR_MODE", "disabled") == "demo":
+        extractor_mode = os.getenv("EXTRACTOR_MODE", "disabled")
+        if extractor_mode == "demo":
             try:
                 plan = extract_demo_plan(pdf_bytes)
             except DemoExtractionError as exc:
@@ -139,6 +142,34 @@ async def upload_plan(response: Response, file: UploadFile = File(...)):
             response.headers["X-MediFit-Extraction-Mode"] = "demo"
             return plan
 
+        if extractor_mode == "gemini":
+            try:
+                plan = await to_thread.run_sync(
+                    extract_plan_terms_from_pages,
+                    [text for _, text in pages],
+                )
+            except RuntimeError as exc:
+                if "GEMINI_API_KEY is not set" in str(exc):
+                    raise HTTPException(
+                        status_code=503,
+                        detail="GEMINI_API_KEY is not configured on the server.",
+                    ) from exc
+                raise HTTPException(
+                    status_code=502,
+                    detail="Plan extraction provider request failed.",
+                ) from exc
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=502,
+                    detail="Plan extraction provider request failed.",
+                ) from exc
+            return plan.model_copy(update={"confirmed": False})
+
+        if extractor_mode != "disabled":
+            raise HTTPException(
+                status_code=500,
+                detail="EXTRACTOR_MODE must be disabled, demo, or gemini.",
+            )
         raise HTTPException(status_code=501, detail="Plan extraction is not connected yet.")
     finally:
         await file.close()
