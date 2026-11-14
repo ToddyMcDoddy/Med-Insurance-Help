@@ -7,6 +7,7 @@ from starlette.datastructures import UploadFile
 
 from app.main import app
 from app.pdf_upload import PdfUploadError, extract_pdf_pages
+from app.extract_terms import _on_page
 from app.upload_rate_limit import UploadRateLimiter
 
 from app import main
@@ -80,6 +81,21 @@ def test_extract_pdf_pages_returns_one_based_page_numbers():
     assert [page_number for page_number, _ in pages] == [1, 2]
     assert "First page" in pages[0][1]
     assert "Second page" in pages[1][1]
+
+
+@pytest.mark.parametrize(
+    ("value", "text", "expected"),
+    [
+        (20, "The deductible is $2,000.", False),
+        (20, "Coinsurance is 20%.", True),
+        (20, "Coinsurance is 20.5%.", False),
+        (20.5, "Coinsurance is 20.50%.", True),
+        (2.5, "Coinsurance is 25%.", False),
+        (2000, "The deductible is $2,000.00.", True),
+    ],
+)
+def test_source_number_match_is_exact(value, text, expected):
+    assert _on_page(value, 1, [text]) is expected
 
 
 def test_valid_text_pdf_returns_temporary_not_implemented_response(client):

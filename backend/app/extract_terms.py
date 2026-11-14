@@ -6,8 +6,10 @@ Run from the backend folder:
 """
 import json
 import os
+import re
 import sys
 import time
+from decimal import Decimal, InvalidOperation
 
 from google import genai
 from google.genai import errors, types
@@ -44,6 +46,8 @@ Rules:
 - page is the PDF page number from the '=== PDF PAGE n ===' markers.
 - quote is a short exact snippet (under 15 words) containing the number."""
 
+_NUMBER_PATTERN = re.compile(r"(?<![\w.,])[+-]?\d+(?:,\d{3})*(?:\.\d+)?(?![\w,])")
+
 
 class _Term(BaseModel):
     value: float | None
@@ -71,7 +75,20 @@ def _on_page(value, page, pages):
     if value is None or page is None or not (1 <= page <= len(pages)):
         return False
     text = pages[page - 1]
-    return any(c in text for c in (f"{value:,.0f}", f"{value:.0f}"))
+    try:
+        expected = Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return False
+    if not expected.is_finite() or expected < 0:
+        return False
+    for match in _NUMBER_PATTERN.finditer(text):
+        try:
+            found = Decimal(match.group().replace(",", ""))
+        except InvalidOperation:
+            continue
+        if found == expected:
+            return True
+    return False
 
 
 def _generate(client, contents, config):
@@ -87,12 +104,14 @@ def _generate(client, contents, config):
     raise last
 
 
-def extract_plan_terms(pdf_path):
+def _client_from_environment():
     key = os.environ.get("GEMINI_API_KEY")
     if not key:
         raise RuntimeError("GEMINI_API_KEY is not set (use backend/.env locally, a server env var in production).")
-    client = genai.Client(api_key=key)
-    pages = _read_pages(pdf_path)
+    return genai.Client(api_key=key)
+
+
+def _extract_plan_terms(client, pages):
     doc = "\n\n".join(f"=== PDF PAGE {i} ===\n{t}" for i, t in enumerate(pages, start=1))
     resp = _generate(
         client,
@@ -105,6 +124,17 @@ def extract_plan_terms(pdf_path):
         ),
     )
     return _to_plan_terms(_Raw(**json.loads(resp.text)), pages)
+
+
+def extract_plan_terms_from_pages(pages):
+    """Extract terms from already validated page text using the configured Gemini client."""
+    return _extract_plan_terms(_client_from_environment(), pages)
+
+
+def extract_plan_terms(pdf_path):
+    """Path-based entry point retained for CLI callers and existing integrations."""
+    client = _client_from_environment()
+    return _extract_plan_terms(client, _read_pages(pdf_path))
 
 
 def _to_plan_terms(raw, pages):
