@@ -26,8 +26,8 @@ except ImportError:
 from .contract import PlanTerms, Sourced
 from .insurer_profiles import detect_insurer, profile_hint, profile_name
 
-MODEL = "gemini-3.5-flash-lite"
-FALLBACK_MODELS = ["gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash"]
+MODEL = "gemini-3.6-flash"
+FALLBACK_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash"]
 TERM_FIELDS = [
     "deductible",
     "out_of_pocket_max",
