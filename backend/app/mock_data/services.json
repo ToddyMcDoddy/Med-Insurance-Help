@@ -1,0 +1,55 @@
+{
+  "label": "Illustrative service pricing",
+  "disclaimer": "All allowed amounts are synthetic demonstration values. They are not actual provider prices, negotiated insurance rates, or quotes. Actual allowed amounts vary by provider, location, network, and plan. Ask the user for an allowed amount when a service is not listed.",
+  "currency": "USD",
+  "services": [
+    {
+      "service_id": "mri",
+      "service_name": "MRI",
+      "aliases": ["magnetic resonance imaging", "MRI scan"],
+      "illustrative_allowed_amount": 1200,
+      "kind": "coinsurance",
+      "copay_type": null
+    },
+    {
+      "service_id": "primary_care",
+      "service_name": "Primary care visit",
+      "aliases": ["doctor visit", "family doctor", "general practitioner"],
+      "illustrative_allowed_amount": 150,
+      "kind": "copay",
+      "copay_type": "primary_care"
+    },
+    {
+      "service_id": "specialist",
+      "service_name": "Specialist visit",
+      "aliases": ["specialist consultation"],
+      "illustrative_allowed_amount": 200,
+      "kind": "copay",
+      "copay_type": "specialist"
+    },
+    {
+      "service_id": "emergency_room",
+      "service_name": "Emergency room visit",
+      "aliases": ["ER visit", "emergency department"],
+      "illustrative_allowed_amount": 2500,
+      "kind": "copay",
+      "copay_type": "er"
+    },
+    {
+      "service_id": "lab_work",
+      "service_name": "Lab work",
+      "aliases": ["blood test", "laboratory testing"],
+      "illustrative_allowed_amount": 800,
+      "kind": "coinsurance",
+      "copay_type": null
+    },
+    {
+      "service_id": "outpatient_procedure",
+      "service_name": "Outpatient procedure",
+      "aliases": ["outpatient surgery"],
+      "illustrative_allowed_amount": 3000,
+      "kind": "coinsurance",
+      "copay_type": null
+    }
+  ]
+}

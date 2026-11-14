@@ -7,7 +7,9 @@ UNTESTED STUB: written without FastAPI installed. Run it and check /health first
 Every endpoint returns mock data for now so the frontend can build against it.
 Replace each mock with the real function as the other layers finish.
 """
+import json
 import os
+from pathlib import Path
 
 from anyio import to_thread
 from fastapi import FastAPI, File, HTTPException, Path as ApiPath, Request, Response, UploadFile
@@ -23,7 +25,6 @@ from .contract import (
     ChatResponse,
     EstimateRequest,
     EstimateResult,
-    Flag,
     PlanTerms,
 )
 from .calculator import estimate as calculate_estimate
@@ -47,6 +48,9 @@ from .chat_service import (
     run_chat,
 )
 from .audit import audit as audit_bill
+from .bill_explain import explain_flags
+from .chat import answer_question
+from .insurer_profiles import detect_insurer, observe
 
 app = FastAPI(title="MediFit API")
 upload_rate_limiter = UploadRateLimiter()
@@ -94,6 +98,22 @@ async def handle_request_validation_error(request: Request, exc: RequestValidati
             ]
         },
     )
+
+
+@app.get("/api/services")
+def services(q: str = ""):
+    """Look up illustrative pricing by service ID, name, or alias."""
+    catalog = json.loads((Path(__file__).parent / "mock_data" / "services.json").read_text())
+    query = q.strip().casefold().replace("_", " ")
+    if query:
+        catalog["services"] = [
+            service for service in catalog["services"]
+            if any(
+                query == name.casefold().replace("_", " ")
+                for name in (service["service_id"], service["service_name"], *service["aliases"])
+            )
+        ]
+    return catalog
 
 
 @app.get("/health")
@@ -149,17 +169,20 @@ async def upload_plan(response: Response, file: UploadFile = File(...)):
                     extract_plan_terms_from_pages,
                     [text for _, text in pages],
                 )
-            except RuntimeError as exc:
-                if "GEMINI_API_KEY is not set" in str(exc):
+            except Exception as exc:
+                if os.getenv("EXTRACTOR_DEMO_FALLBACK") == "1":
+                    try:
+                        plan = extract_demo_plan(pdf_bytes)
+                    except DemoExtractionError:
+                        pass
+                    else:
+                        response.headers["X-MediFit-Extraction-Mode"] = "demo"
+                        return plan
+                if isinstance(exc, RuntimeError) and "GEMINI_API_KEY is not set" in str(exc):
                     raise HTTPException(
                         status_code=503,
                         detail="GEMINI_API_KEY is not configured on the server.",
                     ) from exc
-                raise HTTPException(
-                    status_code=502,
-                    detail="Plan extraction provider request failed.",
-                ) from exc
-            except Exception as exc:
                 raise HTTPException(
                     status_code=502,
                     detail="Plan extraction provider request failed.",
@@ -187,7 +210,7 @@ def estimate(req: EstimateRequest):
 
 @app.post("/api/audit", response_model=AuditResult)
 def audit(bill: Bill):
-    return audit_bill(bill)
+    return explain_flags(bill, audit_bill(bill))
 
 
 @app.put("/api/chat/sessions/{session_id}/context")
@@ -215,6 +238,13 @@ def set_chat_context(
         state = chat_sessions.associate_context(session_id, context)
     except ChatSessionLimitError as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
+    if state.plan is not None and state.plan.confirmed:
+        first_pages = sorted(
+            (page for page in context.documents
+             if page.doc_id == context.plan_document_id and page.page <= 2),
+            key=lambda page: page.page,
+        )
+        observe(detect_insurer([page.text for page in first_pages]), state.plan)
     return {
         "session_id": session_id,
         "confirmed": bool(state.plan and state.plan.confirmed),
@@ -238,13 +268,28 @@ def chat(req: ChatRequest):
             )
         prepared_estimate = prepare_estimate(req, session)
         adapter = chat_adapter_factory()
-        return run_chat(
-            req,
-            session,
-            adapter,
-            limits=limits,
-            prepared_estimate=prepared_estimate,
-        )
+        try:
+            return run_chat(
+                req, session, adapter, limits=limits, prepared_estimate=prepared_estimate
+            )
+        except GeminiProviderError as provider_error:
+            if req.estimate_input is not None or session.plan is None or not session.plan.confirmed:
+                raise
+            pages = sorted(
+                (page for page in session.documents if page.doc_id == session.plan_document_id),
+                key=lambda page: page.page,
+            )
+            if not pages:
+                raise
+            try:
+                return answer_question(
+                    req.message, [page.text for page in pages], session.plan,
+                    doc_id=session.plan_document_id,
+                    page_numbers=[page.page for page in pages],
+                    max_output_tokens=limits.output_tokens,
+                )
+            except Exception:
+                raise provider_error from None
     except ChatConfigurationError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     except GeminiConfigurationError as exc:

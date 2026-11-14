@@ -55,8 +55,7 @@ TOOL_DECLARATIONS = [
 ]
 TOOL_NAMES = {declaration["name"] for declaration in TOOL_DECLARATIONS}
 AUDIT_UNAVAILABLE_REPLY = (
-    "Bill audit is unavailable in this version. The /api/audit endpoint still "
-    "returns mock data and must not be treated as real findings."
+    "Bill review is unavailable in chat. Submit your itemized bill on the bill review screen."
 )
 AUDIT_TERMS = re.compile(
     r"\b(audit|bill|eob|duplicate|duplicates|balance billing|explanation of benefits)\b",

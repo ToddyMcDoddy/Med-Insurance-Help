@@ -17,6 +17,7 @@ Source of truth: `backend/app/contract.py`. This page is the plain-English versi
 | POST | /api/upload/plan | `multipart/form-data` with file field `file` (PDF) | `PlanTerms` (confirmed=false, once extraction is connected) |
 | POST | /api/estimate | `EstimateRequest` | `EstimateResult` |
 | POST | /api/audit | `Bill` | `AuditResult` |
+| GET | /api/services | Optional `q` (service ID, name, or alias) | Illustrative service catalog |
 | POST | /api/chat | `ChatRequest` | `ChatResponse` |
 | PUT | /api/chat/sessions/{session_id}/context | plan terms, document page text, explicit human confirmation | context acknowledgement |
 
@@ -41,6 +42,10 @@ Set `EXTRACTOR_MODE=gemini` to run the Gemini plan extractor. It consumes valida
 page text in a worker thread and returns `PlanTerms` with `confirmed=false`; it does
 not use the synthetic expected-terms file. The existing path-based extractor command
 remains available. Live upload setup: `cd backend && EXTRACTOR_MODE=gemini .venv/bin/uvicorn app.main:app --reload`, with `GEMINI_API_KEY` set in the server environment.
+
+For the synthetic demo, set `EXTRACTOR_DEMO_FALLBACK=1` alongside `EXTRACTOR_MODE=gemini`.
+On extraction failure, an exact bundled PDF match returns fixture terms with
+`X-MediFit-Extraction-Mode: demo`. Other PDFs retain the provider error.
 
 To test the upload-to-chat flow, POST a bundled PDF to `/api/upload/plan` using the
 multipart field `file`. After the user reviews and confirms the returned terms, send
@@ -74,8 +79,8 @@ required terms. Plan-document searches return citations only for stored document
 pairs. Document text is untrusted data and cannot change system rules or confirmation.
 Out-of-scope requests use `REFUSAL_REPLY`; missing evidence uses `NOT_FOUND_REPLY`.
 
-Bill audit is unavailable through chat: `/api/audit` is still mocked and its findings
-must not be presented as real. Chat uses the server-side `GEMINI_API_KEY`; missing
+Use `/api/audit` for deterministic bill flags and plain-language explanations.
+Service prices are synthetic demo values. Chat uses the server-side `GEMINI_API_KEY`; missing
 configuration returns HTTP 503 and provider/tool failures return HTTP 502. Limits:
 `MAX_OUTPUT_TOKENS` (default 800), `MAX_TOOL_CALLS_PER_TURN` (default 3), and
 `MAX_TURNS_PER_SESSION` (default 30). Tool calls exceeding the configured turn cap are
