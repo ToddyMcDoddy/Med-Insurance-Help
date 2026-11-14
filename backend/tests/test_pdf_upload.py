@@ -7,11 +7,19 @@ from starlette.datastructures import UploadFile
 
 from app.main import app
 from app.pdf_upload import PdfUploadError, extract_pdf_pages
+from app.upload_rate_limit import UploadRateLimiter
+
+from app import main
 
 
 @pytest.fixture(scope="module")
 def client():
     return TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def reset_upload_rate_limiter(monkeypatch):
+    monkeypatch.setattr(main, "upload_rate_limiter", UploadRateLimiter())
 
 
 def make_text_pdf(page_texts):
