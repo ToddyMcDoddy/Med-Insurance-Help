@@ -1,0 +1,42 @@
+{
+  "description": "Exact duplicate: L1 and L2 are identical.",
+  "bill": {
+    "bill_id": "BILL-DUP",
+    "items": [
+      {
+        "line_id": "L1",
+        "provider": "Riverside Imaging",
+        "date_of_service": "2026-03-04",
+        "code": "73721",
+        "description": "MRI knee without contrast",
+        "amount": 1200.0
+      },
+      {
+        "line_id": "L2",
+        "provider": "Riverside Imaging",
+        "date_of_service": "2026-03-04",
+        "code": "73721",
+        "description": "MRI knee without contrast",
+        "amount": 1200.0
+      },
+      {
+        "line_id": "L3",
+        "provider": "Dr. Lee Orthopedics",
+        "date_of_service": "2026-03-10",
+        "code": "99214",
+        "description": "Office visit, established patient",
+        "amount": 240.0
+      }
+    ]
+  },
+  "eob": null,
+  "expected_flags": [
+    {
+      "kind": "exact_duplicate",
+      "line_ids": [
+        "L1",
+        "L2"
+      ]
+    }
+  ]
+}

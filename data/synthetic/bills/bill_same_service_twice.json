@@ -1,0 +1,42 @@
+{
+  "description": "Same code on the same date billed by two different providers.",
+  "bill": {
+    "bill_id": "BILL-SAME",
+    "items": [
+      {
+        "line_id": "L1",
+        "provider": "Riverside Imaging",
+        "date_of_service": "2026-05-12",
+        "code": "73721",
+        "description": "MRI knee without contrast",
+        "amount": 1180.0
+      },
+      {
+        "line_id": "L2",
+        "provider": "Riverside Hospital",
+        "date_of_service": "2026-05-12",
+        "code": "73721",
+        "description": "MRI knee without contrast",
+        "amount": 1340.0
+      },
+      {
+        "line_id": "L3",
+        "provider": "Dr. Lee Orthopedics",
+        "date_of_service": "2026-05-20",
+        "code": "99213",
+        "description": "Office visit, established patient",
+        "amount": 160.0
+      }
+    ]
+  },
+  "eob": null,
+  "expected_flags": [
+    {
+      "kind": "same_service_twice",
+      "line_ids": [
+        "L1",
+        "L2"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,247 @@
+[
+  {
+    "id": "uh-01",
+    "plan_file": "unifiedhealthcare_choice_plus_ppo_2000.pdf",
+    "service": "MRI of the knee",
+    "allowed_amount": 1200,
+    "kind": "coinsurance",
+    "copay_type": null,
+    "deductible_met": 500,
+    "out_of_pocket_so_far": 500,
+    "note": "whole bill falls inside remaining deductible",
+    "expected": {
+      "member_pays": 1200.0,
+      "plan_pays": 0.0,
+      "missing": []
+    }
+  },
+  {
+    "id": "uh-02",
+    "plan_file": "unifiedhealthcare_choice_plus_ppo_2000.pdf",
+    "service": "Outpatient procedure",
+    "allowed_amount": 3000,
+    "kind": "coinsurance",
+    "copay_type": null,
+    "deductible_met": 0,
+    "out_of_pocket_so_far": 0,
+    "note": "deductible then 20% of the rest",
+    "expected": {
+      "member_pays": 2200.0,
+      "plan_pays": 800.0,
+      "missing": []
+    }
+  },
+  {
+    "id": "uh-03",
+    "plan_file": "unifiedhealthcare_choice_plus_ppo_2000.pdf",
+    "service": "Outpatient procedure",
+    "allowed_amount": 3000,
+    "kind": "coinsurance",
+    "copay_type": null,
+    "deductible_met": 2000,
+    "out_of_pocket_so_far": 5900,
+    "note": "20% would be $600 but only $100 left under the cap",
+    "expected": {
+      "member_pays": 100,
+      "plan_pays": 2900,
+      "missing": []
+    }
+  },
+  {
+    "id": "uh-04",
+    "plan_file": "unifiedhealthcare_choice_plus_ppo_2000.pdf",
+    "service": "Primary care visit",
+    "allowed_amount": 150,
+    "kind": "copay",
+    "copay_type": "primary_care",
+    "deductible_met": 0,
+    "out_of_pocket_so_far": 0,
+    "note": "copay skips deductible",
+    "expected": {
+      "member_pays": 30,
+      "plan_pays": 120,
+      "missing": []
+    }
+  },
+  {
+    "id": "uh-05",
+    "plan_file": "unifiedhealthcare_choice_plus_ppo_2000.pdf",
+    "service": "Specialist visit",
+    "allowed_amount": 200,
+    "kind": "copay",
+    "copay_type": "specialist",
+    "deductible_met": 0,
+    "out_of_pocket_so_far": 0,
+    "note": "copay skips deductible",
+    "expected": {
+      "member_pays": 60,
+      "plan_pays": 140,
+      "missing": []
+    }
+  },
+  {
+    "id": "uh-06",
+    "plan_file": "unifiedhealthcare_choice_plus_ppo_2000.pdf",
+    "service": "Emergency room visit",
+    "allowed_amount": 2500,
+    "kind": "copay",
+    "copay_type": "er",
+    "deductible_met": 0,
+    "out_of_pocket_so_far": 0,
+    "note": "flat ER copay",
+    "expected": {
+      "member_pays": 350,
+      "plan_pays": 2150,
+      "missing": []
+    }
+  },
+  {
+    "id": "uh-07",
+    "plan_file": "unifiedhealthcare_choice_plus_ppo_2000.pdf",
+    "service": "Any covered service",
+    "allowed_amount": 800,
+    "kind": "coinsurance",
+    "copay_type": null,
+    "deductible_met": 2000,
+    "out_of_pocket_so_far": 6000,
+    "note": "out-of-pocket max already reached",
+    "expected": {
+      "member_pays": 0,
+      "plan_pays": 800,
+      "missing": []
+    }
+  },
+  {
+    "id": "uh-08",
+    "plan_file": "unifiedhealthcare_choice_plus_ppo_2000.pdf",
+    "service": "Primary care visit",
+    "allowed_amount": 20,
+    "kind": "copay",
+    "copay_type": "primary_care",
+    "deductible_met": 0,
+    "out_of_pocket_so_far": 0,
+    "note": "copay larger than allowed amount",
+    "expected": {
+      "member_pays": 20,
+      "plan_pays": 0,
+      "missing": []
+    }
+  },
+  {
+    "id": "uh-09",
+    "plan_file": "unifiedhealthcare_choice_plus_ppo_2000.pdf",
+    "service": "Free service",
+    "allowed_amount": 0,
+    "kind": "coinsurance",
+    "copay_type": null,
+    "deductible_met": 0,
+    "out_of_pocket_so_far": 0,
+    "note": "allowed amount $0",
+    "expected": {
+      "member_pays": 0.0,
+      "plan_pays": 0.0,
+      "missing": []
+    }
+  },
+  {
+    "id": "adv-01",
+    "plan_file": "advavate_gold_ppo_25_1000_10.pdf",
+    "service": "Lab work",
+    "allowed_amount": 800,
+    "kind": "coinsurance",
+    "copay_type": null,
+    "deductible_met": 0,
+    "out_of_pocket_so_far": 0,
+    "note": "all inside the $1,000 deductible",
+    "expected": {
+      "member_pays": 800.0,
+      "plan_pays": 0.0,
+      "missing": []
+    }
+  },
+  {
+    "id": "adv-02",
+    "plan_file": "advavate_gold_ppo_25_1000_10.pdf",
+    "service": "Outpatient surgery",
+    "allowed_amount": 5000,
+    "kind": "coinsurance",
+    "copay_type": null,
+    "deductible_met": 0,
+    "out_of_pocket_so_far": 0,
+    "note": "deductible then 10% of the rest",
+    "expected": {
+      "member_pays": 1400.0,
+      "plan_pays": 3600.0,
+      "missing": []
+    }
+  },
+  {
+    "id": "adv-03",
+    "plan_file": "advavate_gold_ppo_25_1000_10.pdf",
+    "service": "Outpatient surgery",
+    "allowed_amount": 5000,
+    "kind": "coinsurance",
+    "copay_type": null,
+    "deductible_met": 1000,
+    "out_of_pocket_so_far": 4400,
+    "note": "10% would be $500 but only $100 left under the cap",
+    "expected": {
+      "member_pays": 100,
+      "plan_pays": 4900,
+      "missing": []
+    }
+  },
+  {
+    "id": "adv-04",
+    "plan_file": "advavate_gold_ppo_25_1000_10.pdf",
+    "service": "Primary care visit",
+    "allowed_amount": 140,
+    "kind": "copay",
+    "copay_type": "primary_care",
+    "deductible_met": 0,
+    "out_of_pocket_so_far": 0,
+    "note": "copay skips deductible",
+    "expected": {
+      "member_pays": 25,
+      "plan_pays": 115,
+      "missing": []
+    }
+  },
+  {
+    "id": "pvs-01",
+    "plan_file": "pvs_healthsaver_hsa_5500.pdf",
+    "service": "MRI",
+    "allowed_amount": 1500,
+    "kind": "coinsurance",
+    "copay_type": null,
+    "deductible_met": 0,
+    "out_of_pocket_so_far": 0,
+    "note": "out-of-pocket max not in the plan -> no dollar figure",
+    "expected": {
+      "member_pays": null,
+      "plan_pays": null,
+      "missing": [
+        "out_of_pocket_max"
+      ]
+    }
+  },
+  {
+    "id": "pvs-02",
+    "plan_file": "pvs_healthsaver_hsa_5500.pdf",
+    "service": "Primary care visit",
+    "allowed_amount": 150,
+    "kind": "copay",
+    "copay_type": "primary_care",
+    "deductible_met": 0,
+    "out_of_pocket_so_far": 0,
+    "note": "plan has no copays -> no dollar figure",
+    "expected": {
+      "member_pays": null,
+      "plan_pays": null,
+      "missing": [
+        "copay_primary_care",
+        "out_of_pocket_max"
+      ]
+    }
+  }
+]

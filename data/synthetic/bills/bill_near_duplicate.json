@@ -1,0 +1,42 @@
+{
+  "description": "Near duplicate: same provider, date and code, amount differs.",
+  "bill": {
+    "bill_id": "BILL-NEAR",
+    "items": [
+      {
+        "line_id": "L1",
+        "provider": "Dr. Lee Orthopedics",
+        "date_of_service": "2026-04-02",
+        "code": "99214",
+        "description": "Office visit, established patient",
+        "amount": 240.0
+      },
+      {
+        "line_id": "L2",
+        "provider": "Dr. Lee Orthopedics",
+        "date_of_service": "2026-04-02",
+        "code": "99214",
+        "description": "Office visit, established patient",
+        "amount": 252.0
+      },
+      {
+        "line_id": "L3",
+        "provider": "Cedar Lab",
+        "date_of_service": "2026-04-02",
+        "code": "80053",
+        "description": "Comprehensive metabolic panel",
+        "amount": 45.0
+      }
+    ]
+  },
+  "eob": null,
+  "expected_flags": [
+    {
+      "kind": "near_duplicate",
+      "line_ids": [
+        "L1",
+        "L2"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "description": "Nothing to flag. Different codes on the same date are normal; amounts match the EOB.",
+  "bill": {
+    "bill_id": "BILL-OK",
+    "items": [
+      {
+        "line_id": "L1",
+        "provider": "Dr. Lee Orthopedics",
+        "date_of_service": "2026-08-14",
+        "code": "99214",
+        "description": "Office visit, established patient",
+        "amount": 60.0
+      },
+      {
+        "line_id": "L2",
+        "provider": "Cedar Lab",
+        "date_of_service": "2026-08-14",
+        "code": "80053",
+        "description": "Comprehensive metabolic panel",
+        "amount": 18.0
+      },
+      {
+        "line_id": "L3",
+        "provider": "Cedar Lab",
+        "date_of_service": "2026-08-14",
+        "code": "36415",
+        "description": "Blood draw",
+        "amount": 4.0
+      }
+    ]
+  },
+  "eob": {
+    "eob_id": "EOB-OK",
+    "lines": [
+      {
+        "code": "99214",
+        "date_of_service": "2026-08-14",
+        "provider": "Dr. Lee Orthopedics",
+        "billed": 240.0,
+        "allowed": 120.0,
+        "plan_paid": 60.0,
+        "member_owes": 60.0
+      },
+      {
+        "code": "80053",
+        "date_of_service": "2026-08-14",
+        "provider": "Cedar Lab",
+        "billed": 45.0,
+        "allowed": 18.0,
+        "plan_paid": 0.0,
+        "member_owes": 18.0
+      },
+      {
+        "code": "36415",
+        "date_of_service": "2026-08-14",
+        "provider": "Cedar Lab",
+        "billed": 12.0,
+        "allowed": 4.0,
+        "plan_paid": 0.0,
+        "member_owes": 4.0
+      }
+    ]
+  },
+  "expected_flags": []
+}

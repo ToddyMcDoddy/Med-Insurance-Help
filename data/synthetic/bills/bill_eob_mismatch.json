@@ -1,0 +1,55 @@
+{
+  "description": "L1: bill $85 is under the allowed amount but the EOB says the member owes $60. L2 matches.",
+  "bill": {
+    "bill_id": "BILL-EOB",
+    "items": [
+      {
+        "line_id": "L1",
+        "provider": "Dr. Lee Orthopedics",
+        "date_of_service": "2026-06-03",
+        "code": "99214",
+        "description": "Office visit, established patient",
+        "amount": 85.0
+      },
+      {
+        "line_id": "L2",
+        "provider": "Cedar Lab",
+        "date_of_service": "2026-06-03",
+        "code": "80053",
+        "description": "Comprehensive metabolic panel",
+        "amount": 18.0
+      }
+    ]
+  },
+  "eob": {
+    "eob_id": "EOB-EOB",
+    "lines": [
+      {
+        "code": "99214",
+        "date_of_service": "2026-06-03",
+        "provider": "Dr. Lee Orthopedics",
+        "billed": 240.0,
+        "allowed": 120.0,
+        "plan_paid": 60.0,
+        "member_owes": 60.0
+      },
+      {
+        "code": "80053",
+        "date_of_service": "2026-06-03",
+        "provider": "Cedar Lab",
+        "billed": 45.0,
+        "allowed": 18.0,
+        "plan_paid": 0.0,
+        "member_owes": 18.0
+      }
+    ]
+  },
+  "expected_flags": [
+    {
+      "kind": "eob_mismatch",
+      "line_ids": [
+        "L1"
+      ]
+    }
+  ]
+}

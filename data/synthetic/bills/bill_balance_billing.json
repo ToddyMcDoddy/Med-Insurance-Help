@@ -1,0 +1,38 @@
+{
+  "description": "L1: provider bills the full $310 although the plan's allowed amount is $95 (member owes $19).",
+  "bill": {
+    "bill_id": "BILL-BAL",
+    "items": [
+      {
+        "line_id": "L1",
+        "provider": "Riverside Hospital",
+        "date_of_service": "2026-07-08",
+        "code": "71046",
+        "description": "Chest x-ray, 2 views",
+        "amount": 310.0
+      }
+    ]
+  },
+  "eob": {
+    "eob_id": "EOB-BAL",
+    "lines": [
+      {
+        "code": "71046",
+        "date_of_service": "2026-07-08",
+        "provider": "Riverside Hospital",
+        "billed": 310.0,
+        "allowed": 95.0,
+        "plan_paid": 76.0,
+        "member_owes": 19.0
+      }
+    ]
+  },
+  "expected_flags": [
+    {
+      "kind": "balance_billing",
+      "line_ids": [
+        "L1"
+      ]
+    }
+  ]
+}
