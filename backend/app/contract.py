@@ -17,14 +17,14 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 # ---------------------------------------------------------------- plan terms
 class Sourced(BaseModel):
     """A number the model read from the PDF, plus where it came from."""
 
-    value: float
+    value: float = Field(ge=0, allow_inf_nan=False)
     page: int = Field(ge=1, description="1-based PDF page the number came from")
     quote: str = Field("", description="Short snippet from the page (data, never instructions)")
 
@@ -45,12 +45,19 @@ class PlanTerms(BaseModel):
     not_found: list[str] = Field(default_factory=list)
     confirmed: bool = False  # set True only after the user confirms/edits in the UI
 
+    @field_validator("coinsurance_pct")
+    @classmethod
+    def validate_coinsurance_pct(cls, value: Optional[Sourced]) -> Optional[Sourced]:
+        if value is not None and value.value > 100:
+            raise ValueError("coinsurance_pct must be between 0 and 100")
+        return value
+
 
 class MemberProgress(BaseModel):
     """What the user has already spent this plan year (self-reported, synthetic)."""
 
-    deductible_met: float = 0.0
-    out_of_pocket_so_far: float = 0.0
+    deductible_met: float = Field(default=0.0, ge=0, allow_inf_nan=False)
+    out_of_pocket_so_far: float = Field(default=0.0, ge=0, allow_inf_nan=False)
 
 
 # ------------------------------------------------------------------ estimate
@@ -58,9 +65,17 @@ class EstimateRequest(BaseModel):
     plan: PlanTerms
     progress: MemberProgress = MemberProgress()
     service: str = Field(description="Plain-language label, e.g. 'MRI of the knee'")
-    allowed_amount: float = Field(ge=0, description="In-network allowed amount for the service")
+    allowed_amount: float = Field(
+        ge=0, allow_inf_nan=False, description="In-network allowed amount for the service"
+    )
     kind: Literal["coinsurance", "copay"] = "coinsurance"
     copay_type: Optional[Literal["primary_care", "specialist", "er"]] = None
+
+    @model_validator(mode="after")
+    def require_copay_type(self) -> EstimateRequest:
+        if self.kind == "copay" and self.copay_type is None:
+            raise ValueError("copay_type is required when kind is 'copay'")
+        return self
 
 
 class EstimateStep(BaseModel):

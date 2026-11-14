@@ -10,7 +10,10 @@ Replace each mock with the real function as the other layers finish.
 import json
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
 from .contract import (
     AuditResult,
@@ -19,14 +22,29 @@ from .contract import (
     ChatResponse,
     EstimateRequest,
     EstimateResult,
-    EstimateStep,
     Flag,
     PlanTerms,
 )
+from .calculator import estimate as calculate_estimate
 
 MOCK = Path(__file__).parent / "mock_data"
 
 app = FastAPI(title="MediFit API")
+
+
+@app.exception_handler(RequestValidationError)
+async def handle_request_validation_error(request: Request, exc: RequestValidationError):
+    if request.url.path != "/api/estimate":
+        return await request_validation_exception_handler(request, exc)
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": [
+                {key: error[key] for key in ("loc", "msg", "type") if key in error}
+                for error in exc.errors()
+            ]
+        },
+    )
 
 
 @app.get("/health")
@@ -45,13 +63,11 @@ def upload_plan():
 
 @app.post("/api/estimate", response_model=EstimateResult)
 def estimate(req: EstimateRequest):
-    """MOCK. Real version: refuse if req.plan.confirmed is False, then call the
-    calculator function (pure Python)."""
-    return EstimateResult(
-        steps=[EstimateStep(label="Mock step", math="mock", amount=0.0)],
-        member_pays=0.0,
-        plan_pays=req.allowed_amount,
-    )
+    """Calculate a sourced estimate from the user's confirmed plan terms."""
+    try:
+        return calculate_estimate(req)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/api/audit", response_model=AuditResult)
