@@ -46,6 +46,7 @@ from .chat_service import (
     prepare_estimate,
     run_chat,
 )
+from .audit import audit as audit_bill
 
 app = FastAPI(title="MediFit API")
 upload_rate_limiter = UploadRateLimiter()
@@ -186,17 +187,7 @@ def estimate(req: EstimateRequest):
 
 @app.post("/api/audit", response_model=AuditResult)
 def audit(bill: Bill):
-    """MOCK. Real version: deterministic detection, then Gemini explains each flag."""
-    return AuditResult(
-        flags=[
-            Flag(
-                kind="exact_duplicate",
-                line_ids=["L1", "L2"],
-                detail="Same provider, date, code and amount appear twice.",
-                explanation="(mock) These two lines look identical. Worth asking the provider about.",
-            )
-        ]
-    )
+    return audit_bill(bill)
 
 
 @app.put("/api/chat/sessions/{session_id}/context")
