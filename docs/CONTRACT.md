@@ -10,14 +10,23 @@ Source of truth: `backend/app/contract.py`. This page is the plain-English versi
 4. **Calculator lead**: `audit(Bill, Eob?) -> AuditResult`. Deterministic flags. Backend then asks Gemini to fill each flag's `explanation`.
 5. **Backend lead**: `/api/chat` ties it together and returns `ChatResponse` (answer + citations + optional estimate/audit).
 
-## Endpoints (mocked today in main.py)
+## Endpoints
 | Method | Path | In | Out |
 |---|---|---|---|
 | GET | /health | | `{status: ok}` |
-| POST | /api/upload/plan | PDF | `PlanTerms` (confirmed=false) |
+| POST | /api/upload/plan | `multipart/form-data` with file field `file` (PDF) | `PlanTerms` (confirmed=false, once extraction is connected) |
 | POST | /api/estimate | `EstimateRequest` | `EstimateResult` |
 | POST | /api/audit | `Bill` | `AuditResult` |
 | POST | /api/chat | `ChatRequest` | `ChatResponse` |
+
+### Plan upload (temporary behavior)
+Send the PDF as the required multipart field named `file`. The backend reads at most
+`MAX_UPLOAD_MB` plus one byte to detect oversized uploads; the default limit is 5 MB.
+Empty, malformed, encrypted, or textless PDFs receive HTTP 400, and oversized files
+receive HTTP 413. A readable text PDF currently receives HTTP 501 with
+`Plan extraction is not connected yet.` The upload is processed in memory and closed;
+no plan terms are returned until extraction is integrated. The eventual successful
+response remains `PlanTerms` with `confirmed=false`.
 
 ## Rules everyone follows
 - Math happens in Python, never in the model.

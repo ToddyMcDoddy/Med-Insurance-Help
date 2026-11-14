@@ -7,10 +7,9 @@ UNTESTED STUB: written without FastAPI installed. Run it and check /health first
 Every endpoint returns mock data for now so the frontend can build against it.
 Replace each mock with the real function as the other layers finish.
 """
-import json
-from pathlib import Path
+import os
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -26,8 +25,7 @@ from .contract import (
     PlanTerms,
 )
 from .calculator import estimate as calculate_estimate
-
-MOCK = Path(__file__).parent / "mock_data"
+from .pdf_upload import PdfUploadError, extract_pdf_pages
 
 app = FastAPI(title="MediFit API")
 
@@ -52,13 +50,41 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/api/upload/plan", response_model=PlanTerms)
-def upload_plan():
-    """MOCK. Real version: accept PDF (size cap), call extraction, return PlanTerms
-    with confirmed=False. Delete the file after the session."""
-    data = json.loads((MOCK / "plan_terms.json").read_text())
-    data["confirmed"] = False
-    return PlanTerms(**data)
+@app.post(
+    "/api/upload/plan",
+    response_model=PlanTerms,
+    responses={
+        400: {"description": "The uploaded PDF is invalid or unreadable."},
+        413: {"description": "The uploaded PDF exceeds MAX_UPLOAD_MB."},
+        501: {"description": "Plan extraction is not connected yet."},
+    },
+)
+async def upload_plan(file: UploadFile = File(...)):
+    """Validate and read a plan PDF in memory pending extraction integration."""
+    try:
+        try:
+            max_upload_mb = int(os.getenv("MAX_UPLOAD_MB", "5"))
+        except ValueError as exc:
+            raise HTTPException(status_code=500, detail="Invalid MAX_UPLOAD_MB configuration.") from exc
+        if max_upload_mb <= 0:
+            raise HTTPException(status_code=500, detail="MAX_UPLOAD_MB must be a positive integer.")
+
+        max_upload_bytes = max_upload_mb * 1024 * 1024
+        pdf_bytes = await file.read(max_upload_bytes + 1)
+        if len(pdf_bytes) > max_upload_bytes:
+            raise HTTPException(
+                status_code=413,
+                detail=f"PDF exceeds the {max_upload_mb} MB upload limit.",
+            )
+
+        try:
+            extract_pdf_pages(pdf_bytes)
+        except PdfUploadError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        raise HTTPException(status_code=501, detail="Plan extraction is not connected yet.")
+    finally:
+        await file.close()
 
 
 @app.post("/api/estimate", response_model=EstimateResult)
