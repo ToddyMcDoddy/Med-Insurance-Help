@@ -1,0 +1,12 @@
+{
+  "insurer": "Acme Health",
+  "plan_name": "Acme Silver PPO (synthetic)",
+  "deductible": {"value": 2000, "page": 3, "quote": "Individual deductible (in-network): $2,000"},
+  "out_of_pocket_max": {"value": 6000, "page": 3, "quote": "Individual out-of-pocket maximum: $6,000"},
+  "coinsurance_pct": {"value": 20, "page": 4, "quote": "You pay 20% after the deductible"},
+  "copay_primary_care": {"value": 30, "page": 5, "quote": "Primary care visit: $30 copay"},
+  "copay_specialist": {"value": 60, "page": 5, "quote": "Specialist visit: $60 copay"},
+  "copay_er": {"value": 350, "page": 5, "quote": "Emergency room: $350 copay"},
+  "not_found": [],
+  "confirmed": true
+}

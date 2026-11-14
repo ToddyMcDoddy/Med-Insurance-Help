@@ -1,0 +1,17 @@
+# secrets: NEVER commit
+.env
+*.key
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# node
+node_modules/
+dist/
+
+# uploaded user files (health data): never commit
+backend/uploads/
+.DS_Store
