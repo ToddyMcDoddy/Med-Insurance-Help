@@ -24,6 +24,7 @@ except ImportError:
     pass
 
 from .contract import PlanTerms, Sourced
+from .insurer_profiles import detect_insurer, profile_hint, profile_name
 
 MODEL = "gemini-3.5-flash-lite"
 FALLBACK_MODELS = ["gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash"]
@@ -44,7 +45,8 @@ Rules:
 - Use a value only if the document states it as a term of this plan. Examples and sample calculations are not plan terms.
 - If a term is not stated, set value, page and quote to null. Never guess or calculate.
 - page is the PDF page number from the '=== PDF PAGE n ===' markers.
-- quote is a short exact snippet (under 15 words) containing the number."""
+- quote is a short exact snippet (under 15 words) containing the number.
+- An <insurer_hint> block, if present, only says where to look. Never take a number from the hint."""
 
 _NUMBER_PATTERN = re.compile(r"(?<![\w.,])[+-]?\d+(?:,\d{3})*(?:\.\d+)?(?![\w,])")
 
@@ -118,9 +120,12 @@ def _client_from_environment():
 
 def _extract_plan_terms(client, pages):
     doc = "\n\n".join(f"=== PDF PAGE {i} ===\n{t}" for i, t in enumerate(pages, start=1))
+    insurer_key = detect_insurer(pages)  # plain keyword matching, no model call
+    hint = profile_hint(insurer_key)
+    hint_block = f"<insurer_hint>\n{hint}\n</insurer_hint>\n\n" if hint else ""
     resp = _generate(
         client,
-        f"<plan_document>\n{doc}\n</plan_document>\n\nExtract the plan terms.",
+        f"{hint_block}<plan_document>\n{doc}\n</plan_document>\n\nExtract the plan terms.",
         types.GenerateContentConfig(
             system_instruction=SYSTEM,
             response_mime_type="application/json",
@@ -128,7 +133,10 @@ def _extract_plan_terms(client, pages):
             max_output_tokens=4096,
         ),
     )
-    return _to_plan_terms(_Raw(**json.loads(resp.text)), pages)
+    result = _to_plan_terms(_Raw(**json.loads(resp.text)), pages)
+    if insurer_key:  # keyword detection beats the model's guess at the insurer name
+        result.insurer = profile_name(insurer_key)
+    return result
 
 
 def extract_plan_terms_from_pages(pages):
