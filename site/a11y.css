@@ -187,3 +187,33 @@
 .ua11y-colorblind #app [data-ua11y-tone] > .ua11y-status-label {
   color: var(--ua11y-ink);
 }
+
+
+/* Colorblind: recolor the app's own green, amber and red */
+.ua11y-colorblind #app .pill.green[data-ua11y-tone] {
+  --ua11y-accent: var(--ua11y-blue);
+  --ua11y-ink: var(--ua11y-blue-ink);
+  --ua11y-tint: var(--ua11y-blue-tint);
+}
+.ua11y-colorblind #app .pill.amber[data-ua11y-tone],
+.ua11y-colorblind #app .flag[data-ua11y-tone] {
+  --ua11y-accent: var(--ua11y-orange);
+  --ua11y-ink: var(--ua11y-orange-ink);
+  --ua11y-tint: var(--ua11y-orange-tint);
+}
+.ua11y-colorblind #app .notice {
+  background: var(--ua11y-blue-tint);
+  border-color: var(--ua11y-blue);
+  color: var(--ua11y-blue-ink);
+}
+.ua11y-colorblind #app .notice.error {
+  background: var(--ua11y-orange-tint);
+  border-color: var(--ua11y-orange);
+  color: var(--ua11y-orange-ink);
+}
+.ua11y-colorblind #app .flow-steps .done {
+  color: var(--ua11y-blue-ink);
+}
+.ua11y-colorblind #app .danger {
+  color: var(--ua11y-orange-ink);
+}
