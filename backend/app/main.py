@@ -304,3 +304,20 @@ def chat(req: ChatRequest):
         ) from exc
     except ChatToolError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.post("/api/upload/pages")
+async def upload_pages(file: UploadFile = File(...)):
+    """Return the text of each plan PDF page so chat answers can cite pages."""
+    try:
+        max_bytes = int(os.getenv("MAX_UPLOAD_MB", "5")) * 1024 * 1024
+        pdf_bytes = await file.read(max_bytes + 1)
+        if len(pdf_bytes) > max_bytes:
+            raise HTTPException(status_code=413, detail="PDF exceeds the upload limit.")
+        try:
+            pages = extract_pdf_pages(pdf_bytes)
+        except PdfUploadError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"pages": [{"doc_id": "plan", "page": n, "text": t} for n, t in pages]}
+    finally:
+        await file.close()
