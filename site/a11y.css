@@ -229,3 +229,19 @@ html.ua11y-colorblind:root {
   --tint: #e6f1f9;
 }
 
+/* Colorblind: recolor the hard-coded sage areas (sidebar highlight, hero, cards) */
+html.ua11y-colorblind:root .hero {
+  background: linear-gradient(112deg, var(--tint), var(--bg));
+  border-color: var(--line);
+}
+html.ua11y-colorblind:root :is(.hero-label, .hero > p, .hero-note, .welcome-spark, .mini-flower, .art-spark, .context-doc > svg) {
+  color: var(--green);
+}
+html.ua11y-colorblind:root :is(.sage, .help-box, .message.user, .composer textarea, .nav-link.active, .context-doc) {
+  background: var(--tint);
+  color: var(--ink);
+}
+html.ua11y-colorblind:root :is(.orbit, .hero-note, .context-doc) {
+  border-color: var(--line);
+}
+
