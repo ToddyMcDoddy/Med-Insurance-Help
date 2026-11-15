@@ -12,7 +12,7 @@ Synthetic demo data only. Please do not upload real insurance documents. Not med
 - **Reads your plan.** Gemini turns the plan PDF into structured terms (deductible, coinsurance, copays, out-of-pocket max), each with the page it came from. You confirm the terms before anything is calculated.
 - **Answers questions.** Plain-language answers grounded in your plan, with page citations.
 - **Estimates cost.** A plain Python function (not the model) does the math in a fixed order and shows every step.
-- **Reviews bills.** Code finds duplicate and disputable charges; Gemini explains them in plain language and drafts a letter you can copy. Flags mean "worth asking about", never an accusation.
+- **Reviews bills.** Code finds duplicate and disputable charges; Gemini explains them in plain language and suggests a question you can ask the billing office. Flags mean "worth asking about", never an accusation.
 
 ## Sponsor tools
 | Tool | Used for | Status |
@@ -60,7 +60,7 @@ Gemini is our only AI model. It is used in three places, and in each one code, n
 
 1. **Reading the plan.** `extract_plan_terms` turns the plan PDF into structured terms (deductible, coinsurance, copays, out-of-pocket max, limits), each with the page it came from. If a number is not on the cited page, code drops it. If a term is missing, it stays "not found" and is never guessed. The user confirms the terms before any estimate is calculated.
 2. **Chat.** `answer_question` answers only from the user's plan and confirmed terms, and cites pages. Off-topic requests get a fixed refusal, missing info gets a fixed "couldn't find this in your plan" reply, and links and images are stripped from answers. The model never does estimate math; a plain function does.
-3. **Bills.** Duplicate and dispute flags are found by code. `explain_flags` and `draft_dispute_letter` only put them in plain language ("worth asking about", never an accusation). Letters keep placeholders for the user's details. If Gemini fails, code-written text is used instead.
+3. **Bills.** Duplicate and dispute flags are found by code. `explain_flags` and `draft_dispute_letter` only put them in plain language ("worth asking about", never an accusation). Letters keep placeholders for the user's details. If Gemini fails, code-written text is used instead. The live web app currently shows the explanation and a suggested question; the letter-drafting function is part of the AI layer but is not shown in the web app yet.
 
 **Prompt-injection safety.** All PDF text is treated as data, never as instructions. We test this with a plan PDF that has hidden text on page 4 trying to set the deductible to $0, say everything is covered, and reveal the instructions. The model ignored it.
 
