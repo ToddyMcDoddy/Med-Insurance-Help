@@ -1,0 +1,189 @@
+.ua11y-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.composer:has(> .ua11y-voice) {
+  flex-wrap: wrap;
+}
+
+.ua11y-voice {
+  display: flex;
+  flex: 0 0 100%;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .375rem .625rem;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  color: #263442;
+  background: #fff;
+  padding: .25rem;
+  border-radius: .5rem;
+}
+
+.composer .ua11y-mic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .375rem;
+  width: auto;
+  min-height: 44px;
+  min-width: 44px;
+  padding: .375rem .625rem;
+  border: 1px solid #005884;
+  border-radius: .5rem;
+  background: #fff;
+  color: #005884;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.composer .ua11y-mic[aria-pressed="true"] {
+  background: #005884;
+  color: #fff;
+}
+
+.composer .ua11y-mic[aria-disabled="true"] {
+  cursor: wait;
+}
+
+.ua11y-mic-icon {
+  position: relative;
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin: 0 1px 1px;
+  box-sizing: border-box;
+  border: 1.5px solid currentColor;
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+}
+
+.ua11y-mic-icon::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 5px;
+  height: 10px;
+  transform: translateX(-50%);
+  border-radius: 4px;
+  background: currentColor;
+}
+
+.ua11y-mic-icon::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  width: 1.5px;
+  height: 4px;
+  transform: translateX(-50%);
+  background: currentColor;
+}
+
+.ua11y-voice-help,
+.ua11y-voice-status {
+  font-size: .875em;
+  overflow-wrap: anywhere;
+}
+
+.ua11y-voice-status {
+  flex-basis: 100%;
+  font-weight: 600;
+}
+
+.ua11y-voice-status:empty {
+  display: none;
+}
+
+.ua11y-setting {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.ua11y-setting input {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0 .25rem;
+  accent-color: #005884;
+  cursor: inherit;
+}
+
+.composer .ua11y-mic:focus-visible,
+.ua11y-setting input:focus-visible {
+  outline: 2px solid #004c78;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px #fff;
+}
+
+.ua11y-status-label {
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  margin: .125rem .25rem;
+  padding: .125em .4em;
+  border: 1px solid currentColor;
+  border-radius: .35em;
+  background: #fff;
+  color: #263442;
+  font-size: .85em;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.ua11y-colorblind {
+  /* Okabe–Ito blue, orange and sky blue, with darker shades for text. */
+  --ua11y-blue: #0072b2;
+  --ua11y-blue-ink: #005884;
+  --ua11y-blue-tint: #e8f4fa;
+  --ua11y-orange: #9a5400;
+  --ua11y-orange-ink: #703d00;
+  --ua11y-orange-tint: #fff2d8;
+  --ua11y-sky: #15729c;
+  --ua11y-sky-ink: #1c5875;
+  --ua11y-sky-tint: #e9f7fe;
+}
+
+.ua11y-colorblind #app [data-ua11y-tone="positive"] {
+  --ua11y-accent: var(--ua11y-blue);
+  --ua11y-ink: var(--ua11y-blue-ink);
+  --ua11y-tint: var(--ua11y-blue-tint);
+}
+
+.ua11y-colorblind #app [data-ua11y-tone="attention"] {
+  --ua11y-accent: var(--ua11y-orange);
+  --ua11y-ink: var(--ua11y-orange-ink);
+  --ua11y-tint: var(--ua11y-orange-tint);
+}
+
+.ua11y-colorblind #app [data-ua11y-tone="info"] {
+  --ua11y-accent: var(--ua11y-sky);
+  --ua11y-ink: var(--ua11y-sky-ink);
+  --ua11y-tint: var(--ua11y-sky-tint);
+}
+
+.ua11y-colorblind #app [data-ua11y-tone] {
+  border-color: var(--ua11y-accent);
+  background: var(--ua11y-tint);
+  color: var(--ua11y-ink);
+}
+
+.ua11y-colorblind #app [data-ua11y-tone] > .ua11y-status-label {
+  color: var(--ua11y-ink);
+}
