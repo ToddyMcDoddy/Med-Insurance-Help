@@ -36,13 +36,16 @@ def _clean(answer):
     return answer.strip()
 
 
-def answer_question(question, pages, terms=None, doc_id="plan"):
+def answer_question(
+    question, pages, terms=None, doc_id="plan", *, page_numbers=None, max_output_tokens=2048
+):
     """pages: list of page texts (page 1 first). terms: the user-confirmed PlanTerms, if any."""
     key = os.environ.get("GEMINI_API_KEY")
     if not key:
         raise RuntimeError("GEMINI_API_KEY is not set.")
     client = genai.Client(api_key=key)
-    doc = "\n\n".join(f"=== PDF PAGE {i} ===\n{t}" for i, t in enumerate(pages, start=1))
+    numbers = tuple(page_numbers) if page_numbers is not None else tuple(range(1, len(pages) + 1))
+    doc = "\n\n".join(f"=== PDF PAGE {i} ===\n{t}" for i, t in zip(numbers, pages, strict=True))
     contents = (
         f"<plan_document>\n{doc}\n</plan_document>\n\n"
         f"<confirmed_terms>\n{_terms_block(terms)}\n</confirmed_terms>\n\n"
@@ -51,13 +54,13 @@ def answer_question(question, pages, terms=None, doc_id="plan"):
     resp = _generate(
         client,
         contents,
-        types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, max_output_tokens=2048),
+        types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT, max_output_tokens=max_output_tokens),
     )
     answer = _clean(resp.text or "")
     if not answer or any(m in answer for m in _LEAK_MARKERS):  # empty reply or leaked rules
         answer = REFUSAL_REPLY
     refused = answer == REFUSAL_REPLY
-    cited = sorted({int(p) for p in re.findall(r"page\s+(\d+)", answer, flags=re.I) if 1 <= int(p) <= len(pages)})
+    cited = sorted({int(p) for p in re.findall(r"page\s+(\d+)", answer, flags=re.I) if int(p) in numbers})
     return ChatResponse(
         answer=answer,
         citations=[] if refused or answer == NOT_FOUND_REPLY else [Citation(doc_id=doc_id, page=p) for p in cited],

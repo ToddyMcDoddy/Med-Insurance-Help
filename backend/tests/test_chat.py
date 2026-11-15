@@ -278,7 +278,8 @@ def test_audit_requests_report_unavailable_without_mock_findings(client, monkeyp
 
     assert response.status_code == 200
     assert "unavailable" in response.json()["answer"].lower()
-    assert "mock" in response.json()["answer"].lower()
+    assert "bill review screen" in response.json()["answer"].lower()
+    assert "mock" not in response.json()["answer"].lower()
     assert response.json()["audit"] is None
 
 
