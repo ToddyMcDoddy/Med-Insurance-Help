@@ -6,10 +6,9 @@
 
   var css = document.createElement('style');
   css.textContent =
-    '.hero.ua-has-logo{position:relative}' +
-    '.ua-logo{position:absolute;right:3%;top:50%;transform:translateY(-50%);width:min(28%,300px);height:auto;pointer-events:none;z-index:1}' +
-    '.hero.ua-has-logo .art-spark{display:none}' +
-    '@media (max-width:1000px){.ua-logo{position:static;transform:none;display:block;margin:20px auto 0;width:min(70%,280px)}}';
+    '.brandmark.ua-has-logo{width:46px;height:46px;background:transparent;border-radius:0;display:block}' +
+    '.brandmark.ua-has-logo img{display:block;width:100%;height:100%;object-fit:contain}' +
+    'html.ua11y-colorblind .brand-period{color:#2f6f9f}';
   document.head.appendChild(css);
 
   function wanted() {
@@ -17,21 +16,24 @@
   }
 
   function place() {
-    var hero = app.querySelector('.hero');
-    if (!hero) return;
-    var img = hero.querySelector('img.ua-logo');
-    if (!img) {
-      img = document.createElement('img');
-      img.className = 'ua-logo';
-      img.alt = 'unsurance logo: a smiling blue figure with raised arms, a lightbulb above its head and a heart, with the words from unsure to insured';
-      img.width = 760;
-      img.height = 755;
-      img.decoding = 'async';
-      hero.appendChild(img);
-      hero.classList.add('ua-has-logo');
+    var marks = app.querySelectorAll('.brandmark');
+    for (var i = 0; i < marks.length; i++) {
+      var mark = marks[i];
+      var img = mark.querySelector('img.ua-logo');
+      if (!img) {
+        mark.textContent = '';
+        img = document.createElement('img');
+        img.className = 'ua-logo';
+        img.alt = '';
+        img.width = 46;
+        img.height = 46;
+        img.decoding = 'async';
+        mark.appendChild(img);
+        mark.classList.add('ua-has-logo');
+      }
+      var src = wanted();
+      if (img.getAttribute('src') !== src) img.setAttribute('src', src);
     }
-    var src = wanted();
-    if (img.getAttribute('src') !== src) img.setAttribute('src', src);
   }
 
   var queued = false;
