@@ -283,7 +283,7 @@ def test_audit_requests_report_unavailable_without_mock_findings(client, monkeyp
     assert response.json()["audit"] is None
 
 
-def test_invalid_tool_arguments_are_rejected(client, monkeypatch):
+def test_extra_tool_arguments_are_ignored(client, monkeypatch):
     install_adapter(
         monkeypatch,
         ModelReply(
@@ -296,8 +296,7 @@ def test_invalid_tool_arguments_are_rejected(client, monkeypatch):
         "/api/chat", json={"session_id": "session-a", "message": "What is my deductible?"}
     )
 
-    assert response.status_code == 502
-    assert "invalid tool arguments" in response.json()["detail"].lower()
+    assert response.status_code == 200
 
 
 def test_unknown_tool_is_rejected(client, monkeypatch):

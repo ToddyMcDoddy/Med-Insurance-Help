@@ -387,7 +387,7 @@ def _search_documents(query: str, session: ChatSession) -> list[Any]:
 
 
 def _validate_tool_arguments(call: ToolCall) -> None:
-    if not isinstance(call.arguments, dict) or call.arguments:
+    if not isinstance(call.arguments, dict):
         raise ChatToolError("Gemini produced invalid tool arguments.")
 
 
