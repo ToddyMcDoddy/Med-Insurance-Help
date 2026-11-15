@@ -321,3 +321,12 @@ async def upload_pages(file: UploadFile = File(...)):
         return {"pages": [{"doc_id": "plan", "page": n, "text": t} for n, t in pages]}
     finally:
         await file.close()
+
+
+from pathlib import Path as _Path
+from fastapi.responses import FileResponse as _FileResponse
+
+
+@app.get("/", include_in_schema=False)
+def home():
+    return _FileResponse(_Path(__file__).resolve().parents[2] / "frontend" / "index.html")

@@ -1,332 +1,140 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MediFit</title>
+<title>idontunderstandmymedinsurance</title>
 <style>
-  * { box-sizing: border-box; }
-  body { margin: 0; font: 1rem/1.5 system-ui; color: #17343b; background: #eef6f6; }
-  header { padding: 1rem 1.5rem; background: #125861; color: white; }
-  h2 { margin-top: 0; font-size: 1.2rem; }
-  .layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
-    gap: 1rem;
-    max-width: 75rem;
-    margin: auto;
-    padding: 1rem;
-  }
-  .panel { padding: 1rem; border: 1px solid #b5d4d7; border-radius: .75rem; background: white; }
-  input { display: block; max-width: 100%; margin: .5rem 0; }
-  @media (max-width: 48rem) { .layout { grid-template-columns: 1fr; } }
+:root{color-scheme:light;--teal:#0f8a8a;--blue:#1d5fa8;--bg:#f2f8fa;--ink:#16303b;--mut:#5b7480;--line:#d5e5ea}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:linear-gradient(90deg,var(--blue),var(--teal));color:#fff;padding:12px 16px;font-weight:700}
+header small{display:block;font-weight:400;opacity:.9}
+main{max-width:1000px;margin:0 auto;padding:12px;display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:800px){main{grid-template-columns:1fr 300px}}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+h2{margin:0 0 8px;font-size:1.05rem}
+button{background:var(--teal);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-size:1rem;cursor:pointer}
+button.alt{background:#e3f1f3;color:var(--blue)}
+button:disabled{opacity:.5}
+input{font:inherit;padding:9px;border:1px solid var(--line);border-radius:10px;width:100%}
+label{display:block;font-size:.85rem;color:var(--mut);margin-top:8px}
+#log{min-height:220px;max-height:55vh;overflow:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+.msg{padding:9px 12px;border-radius:14px;max-width:88%;white-space:pre-wrap}
+.me{align-self:flex-end;background:var(--blue);color:#fff}
+.bot{align-self:flex-start;background:#e8f4f5}
+.cite{font-size:.8rem;color:var(--mut);margin-top:4px}
+.row{display:flex;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.hide{display:none}
+.note{font-size:.8rem;color:var(--mut)}
+.bar{height:10px;background:#dbe9ed;border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--teal)}
+:focus-visible{outline:3px solid #f5a623;outline-offset:2px}
 </style>
-<header><strong>MediFit</strong></header>
-<div class="layout">
-  <aside class="panel" aria-labelledby="documents">
-    <h2 id="documents">Documents and bills</h2>
-    <label for="plan-pdf">Choose a sample plan PDF</label>
-    <input id="plan-pdf" type="file" accept=".pdf,application/pdf">
-<form id="bill-form">
-  <h3>Review a sample bill</h3>
-  <label for="bill-file">Choose a sample bill (.json)</label>
-  <input id="bill-file" type="file" accept=".json,application/json" required>
-  <button type="submit">Review bill</button>
+</head>
+<body>
+<header>idontunderstandmymedinsurance<small>Your plan, explained. Synthetic demo data only. Not medical, legal or financial advice.</small></header>
+<main>
+<div>
+<section class="card" id="uploadCard">
+<h2>1. Upload your plan PDF</h2>
+<p class="note">Demo uses made-up plans only. Do not upload real personal documents.</p>
+<input type="file" id="file" accept="application/pdf" aria-label="Plan PDF">
+<p><button id="uploadBtn">Read my plan</button></p>
+<p id="uploadMsg" class="note" role="status"></p>
+</section>
+<section class="card hide" id="confirmCard">
+<h2>2. Check what we read</h2>
+<p class="note">Fix anything that looks wrong. Nothing is used until you confirm.</p>
+<div id="fields"></div>
+<p><button id="confirmBtn">These are correct</button></p>
+<p id="confirmMsg" class="note" role="status"></p>
+</section>
+<section class="card hide" id="chatCard">
+<h2>3. Ask about your plan</h2>
+<div class="chips" id="chips"></div>
+<div id="log" aria-live="polite"></div>
+<form class="row" id="chatForm">
+<input id="q" placeholder="Ask about your coverage…" aria-label="Your question" autocomplete="off">
+<button id="send">Send</button>
 </form>
-<p id="bill-status" role="status"></p>
-<ul id="bill-flags" aria-label="Bill review findings"></ul>
-  </aside>
-  <main class="panel">
-    <h2>Coverage chat</h2>
-    <section aria-labelledby="confirm">
-      <h3 id="confirm">Confirm plan details</h3>
-      <p>Your plan details will appear here for review.</p>
-    </section>
-    <section aria-labelledby="chat-heading">
-  <h3 id="chat-heading">Ask about your coverage</h3>
-  <div id="chat-log" role="log" aria-label="Coverage conversation"></div>
-
-  <form id="chat-form">
-    <label for="chat-message">Your question</label>
-    <input id="chat-message" type="text" maxlength="2000" required
-           placeholder="What is my deductible?">
-    <button type="submit">Send question</button>
-  </form>
-  <p id="chat-status" role="status"></p>
 </section>
-
-    <section aria-labelledby="estimate-heading">
-  <h3 id="estimate-heading">Estimate a procedure cost</h3>
-  <form id="estimate-form">
-    <fieldset id="estimate-fields" disabled>
-      <legend>Procedure details</legend>
-
-      <label for="estimate-service">Procedure name</label>
-      <input id="estimate-service" name="service" required
-             placeholder="MRI of the knee">
-
-      <label for="estimate-amount">In-network allowed amount ($)</label>
-      <input id="estimate-amount" name="allowed_amount" type="number"
-             min="0" step="0.01" required aria-describedby="allowed-amount-help">
-      <p id="allowed-amount-help">Enter the price your insurer uses to calculate your share.</p>
-
-      <button type="submit">Get estimate</button>
-    </fieldset>
-  </form>
-  <p id="estimate-status" role="status">Confirm your plan to get an estimate.</p>
-  <div id="estimate-result"></div>
-</section>
-  </main>
-  <aside class="panel" aria-labelledby="my-plan">
-    <h2 id="my-plan">My Plan</h2>
-    <p>Deductible progress will appear after you confirm your plan.</p>
-  </aside>
 </div>
+<aside class="card">
+<details open><summary><b>My plan</b></summary>
+<div id="plan"><p class="note">Upload a plan to see it here.</p></div>
+</details>
+</aside>
+</main>
 <script>
-  const picker = document.querySelector("#plan-pdf");
-  const status = document.querySelector("#confirm + p");
-  const details = document.createElement("dl");
-  const confirmButton = document.createElement("button");
-
-  status.setAttribute("role", "status");
-  confirmButton.type = "button";
-  confirmButton.textContent = "Confirm plan details";
-  confirmButton.hidden = true;
-  status.after(details, confirmButton);
-let selectedPlan = null;
-  function showFields(list, fields) {
-    for (const [key, value] of Object.entries(fields)) {
-      if (key === "confirmed") continue;
-
-      const label = document.createElement("dt");
-      label.textContent = key.replaceAll("_", " ");
-      const description = document.createElement("dd");
-
-      if (value && typeof value === "object" && !Array.isArray(value)) {
-        const nested = document.createElement("dl");
-        showFields(nested, value);
-        description.append(nested);
-      } else {
-        description.textContent = Array.isArray(value)
-          ? value.join(", ") || "None"
-          : value ?? "Not available";
-      }
-
-      list.append(label, description);
-    }
-  }
-
-  picker.addEventListener("change", async () => {
-    const file = picker.files[0];
-    details.replaceChildren();
-    confirmButton.hidden = true;
-    if (!file) {
-      status.textContent = "Choose a sample plan PDF to review.";
-      return;
-    }
-
-    status.textContent = "Loading sample plan details…";
-    try {
-      const response = await fetch("./api/upload/plan", { method: "POST" });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const plan = await response.json();
-      if (picker.files[0] !== file) return;
-      showFields(details, plan);
-      selectedPlan = plan;
-      status.textContent = "Review these sample plan details.";
-      confirmButton.hidden = false;
-    } catch {
-      if (picker.files[0] === file) {
-        status.textContent = "Could not load the sample plan. Try choosing the PDF again.";
-        picker.value = "";
-      }
-    }
-  });
-
-const estimateForm = document.querySelector("#estimate-form");
-const estimateFields = document.querySelector("#estimate-fields");
-const estimateStatus = document.querySelector("#estimate-status");
-const estimateResult = document.querySelector("#estimate-result");
-const estimateButton = estimateForm.querySelector("button");
-const dollars = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-});
-
-confirmButton.addEventListener("click", () => {
-  if (!selectedPlan) return;
-
-  selectedPlan.confirmed = true;
-  status.textContent = "Sample plan details confirmed.";
-  confirmButton.disabled = true;
-  estimateFields.disabled = false;
-  estimateStatus.textContent = "Enter a procedure and its allowed amount.";
-});
-
-picker.addEventListener("change", () => {
-  selectedPlan = null;
-  confirmButton.disabled = false;
-  estimateFields.disabled = true;
-  estimateButton.disabled = false;
-  estimateStatus.textContent = "Confirm your plan to get an estimate.";
-  estimateResult.replaceChildren();
-});
-
-estimateForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  const plan = selectedPlan;
-  if (!plan?.confirmed) return;
-
-  const fields = new FormData(estimateForm);
-  const service = String(fields.get("service")).trim();
-  if (!service) {
-    estimateStatus.textContent = "Enter a procedure name.";
-    return;
-  }
-
-  estimateButton.disabled = true;
-  estimateResult.replaceChildren();
-  estimateStatus.textContent = "Getting your estimate…";
-
-  try {
-    const response = await fetch("./api/estimate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        plan,
-        service,
-        allowed_amount: Number(fields.get("allowed_amount")),
-        kind: "coinsurance",
-      }),
-    });
-
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const estimate = await response.json();
-    if (selectedPlan !== plan) return;
-
-    const summary = document.createElement("p");
-    summary.textContent =
-      `You may pay ${dollars.format(estimate.member_pays)}. ` +
-      `Your plan may pay ${dollars.format(estimate.plan_pays)}.`;
-
-    const steps = document.createElement("ol");
-    for (const step of estimate.steps) {
-      const item = document.createElement("li");
-      const source = step.source_page == null ? "" : ` (plan page ${step.source_page})`;
-      item.textContent =
-        `${step.label} — ${step.math}. ${dollars.format(step.amount)}${source}`;
-      steps.append(item);
-    }
-
-    const disclaimer = document.createElement("p");
-    disclaimer.textContent = estimate.disclaimer;
-    estimateResult.append(summary, steps, disclaimer);
-
-    estimateStatus.textContent = estimate.missing?.length
-      ? `Missing information: ${estimate.missing.join(", ")}.`
-      : "Estimate ready.";
-  } catch (error) {
-    if (selectedPlan === plan) {
-      estimateStatus.textContent = `Could not get an estimate (${error.message}). Try again.`;
-    }
-  } finally {
-    if (selectedPlan === plan) estimateButton.disabled = false;
-  }
-});
-const chatForm = document.querySelector("#chat-form");
-const chatInput = document.querySelector("#chat-message");
-const chatLog = document.querySelector("#chat-log");
-const chatStatus = document.querySelector("#chat-status");
-const chatSend = chatForm.querySelector("button");
-const chatSessionId = crypto.getRandomValues(new Uint32Array(4)).join("-");
-
-function addChatMessage(text) {
-  const entry = document.createElement("p");
-  entry.textContent = text;
-  chatLog.append(entry);
-}
-
-chatForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const originalInput = chatInput.value;
-  const message = originalInput.trim();
-  if (!message || chatSend.disabled) return;
-
-  chatSend.disabled = true;
-  chatStatus.textContent = "Getting an answer…";
-
-  try {
-    const response = await fetch("./api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ session_id: chatSessionId, message }),
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    const reply = await response.json();
-    addChatMessage(`You: ${message}`);
-    addChatMessage(`MediFit: ${reply.answer}`);
-
-    for (const { doc_id, page } of reply.citations ?? []) {
-      addChatMessage(`Source: ${doc_id}, page ${page}`);
-    }
-
-    if (chatInput.value === originalInput) chatInput.value = "";
-    chatStatus.textContent = "";
-  } catch {
-    chatStatus.textContent = "Could not get an answer. Please try again.";
-  } finally {
-    chatSend.disabled = false;
-  }
-});
-const billForm = document.querySelector("#bill-form");
-const billFile = document.querySelector("#bill-file");
-const billStatus = document.querySelector("#bill-status");
-const billFlags = document.querySelector("#bill-flags");
-const billButton = billForm.querySelector("button");
-
-billFile.addEventListener("change", () => {
-  billFlags.replaceChildren();
-  billStatus.textContent = "";
-});
-
-billForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const file = billFile.files[0];
-  if (!file || billButton.disabled) return;
-
-  billButton.disabled = true;
-  billFile.disabled = true;
-  billFlags.replaceChildren();
-  billStatus.textContent = "Reviewing the sample bill…";
-
-  try {
-    const sample = JSON.parse(await file.text());
-    const response = await fetch("./api/audit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(sample.bill ?? sample),
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    const result = await response.json();
-    for (const flag of result.flags) {
-      const item = document.createElement("li");
-      item.textContent = `Lines ${flag.line_ids.join(", ")}. ${flag.detail} ${flag.explanation ?? ""}`;
-      billFlags.append(item);
-    }
-
-    billStatus.textContent = result.flags.length
-      ? "Review complete. See the findings below."
-      : "Review complete. No items were flagged.";
-  } catch (error) {
-    billStatus.textContent = error instanceof SyntaxError
-      ? "Choose one of the sample bill JSON files and try again."
-      : `Could not review the bill (${error.message}).`;
-  } finally {
-    billFile.disabled = false;
-    billButton.disabled = false;
-  }
-});
+const $=id=>document.getElementById(id);
+const sid="s"+Math.random().toString(36).slice(2,12);
+let plan=null,pages=[];
+const FIELDS=[["deductible","Deductible ($)"],["out_of_pocket_max","Out-of-pocket max ($)"],["coinsurance_pct","Coinsurance (% you pay)"],["copay_primary_care","Primary care copay ($)"],["copay_specialist","Specialist copay ($)"],["copay_er","Emergency room copay ($)"]];
+const val=x=>x&&typeof x==="object"?x.value:x;
+async function api(url,opts){
+  const r=await fetch(url,opts);let b=null;
+  try{b=await r.json()}catch(e){}
+  if(!r.ok){throw new Error((b&&typeof b.detail==="string"&&b.detail)||("Error "+r.status))}
+  return b}
+function setPlanPanel(){
+  const box=$("plan");box.textContent="";if(!plan)return;
+  const add=t=>{const p=document.createElement("p");p.textContent=t;box.appendChild(p)};
+  add((val(plan.insurer)||"")+" "+(val(plan.plan_name)||""));
+  FIELDS.forEach(([k,l])=>{const s=plan[k];if(s&&val(s)!=null)add(l+": "+val(s)+(s.page?" (p."+s.page+")":""))});
+  const d=val(plan.deductible);
+  if(d){const bar=document.createElement("div");bar.className="bar";const i=document.createElement("i");i.style.width="0%";bar.appendChild(i);box.appendChild(bar);add("Deductible met so far: $0 of $"+d)}}
+function showFields(){
+  const box=$("fields");box.textContent="";
+  FIELDS.forEach(([k,l])=>{
+    const lab=document.createElement("label");
+    lab.textContent=l+(plan[k]&&plan[k].page?" — found on page "+plan[k].page:" — not found, enter it or leave blank");
+    const inp=document.createElement("input");inp.type="number";inp.step="any";inp.id="f_"+k;
+    const v=val(plan[k]);inp.value=v==null?"":v;
+    lab.appendChild(inp);box.appendChild(lab)})}
+$("uploadBtn").onclick=async()=>{
+  const f=$("file").files[0];
+  if(!f){$("uploadMsg").textContent="Choose a PDF first.";return}
+  $("uploadBtn").disabled=true;$("uploadMsg").textContent="Reading your plan… this can take up to a minute.";
+  try{
+    const fd=()=>{const x=new FormData();x.append("file",f);return x};
+    const [p,g]=await Promise.all([api("/api/upload/plan",{method:"POST",body:fd()}),api("/api/upload/pages",{method:"POST",body:fd()})]);
+    plan=p;pages=g.pages;showFields();
+    $("confirmCard").classList.remove("hide");$("uploadMsg").textContent="Done."
+  }catch(e){$("uploadMsg").textContent="Could not read the plan: "+e.message}
+  $("uploadBtn").disabled=false};
+$("confirmBtn").onclick=async()=>{
+  const out=JSON.parse(JSON.stringify(plan));
+  FIELDS.forEach(([k])=>{
+    const t=$("f_"+k).value,o=plan[k];
+    if(t==="")out[k]=null;
+    else if(o&&Number(t)===val(o))out[k]=o;
+    else out[k]={value:Number(t),page:(o&&o.page)||null,quote:(o&&o.quote)||null}});
+  out.confirmed=true;
+  try{
+    await api("/api/chat/sessions/"+sid+"/context",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({plan:out,plan_document_id:"plan",documents:pages,confirmed:true})});
+    plan=out;setPlanPanel();$("confirmMsg").textContent="Confirmed.";
+    $("chatCard").classList.remove("hide");startChat()
+  }catch(e){$("confirmMsg").textContent="Could not save: "+e.message}};
+function bubble(t,c){const d=document.createElement("div");d.className="msg "+c;d.textContent=t;$("log").appendChild(d);$("log").scrollTop=1e9;return d}
+function startChat(){
+  const box=$("chips");if(box.children.length)return;
+  ["What is my deductible?","What is my copay for a specialist?","Estimate a primary care visit costing $200"].forEach(t=>{
+    const b=document.createElement("button");b.type="button";b.className="alt";b.textContent=t;b.onclick=()=>ask(t);box.appendChild(b)});
+  bubble("Your plan is confirmed. Ask me anything about your coverage. Estimates are estimates, not guarantees.","bot")}
+async function ask(t){
+  if(!t.trim())return;
+  bubble(t,"me");$("q").value="";$("send").disabled=true;
+  const w=bubble("Thinking…","bot");
+  try{
+    const r=await api("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_id:sid,message:t})});
+    w.textContent=r.answer;
+    if(r.citations&&r.citations.length){const c=document.createElement("div");c.className="cite";c.textContent="Source: page "+[...new Set(r.citations.map(x=>x.page))].join(", ");w.appendChild(c)}
+    if(r.estimate){const e=r.estimate,c=document.createElement("div");c.className="cite";c.textContent="Steps: "+e.steps.map(s=>s.label+" ("+s.math+") = $"+s.amount).join(" → ")+" | You pay about $"+e.member_pays+" (estimate)";w.appendChild(c)}
+  }catch(e){w.textContent="Sorry, that didn't work: "+e.message}
+  $("send").disabled=false}
+$("chatForm").onsubmit=ev=>{ev.preventDefault();ask($("q").value)};
 </script>
+</body>
 </html>
