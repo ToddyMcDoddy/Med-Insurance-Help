@@ -143,7 +143,7 @@ async function ask(t,est){
     if(r.citations&&r.citations.length){const c=document.createElement("div");c.className="cite";c.textContent="Source: page "+[...new Set(r.citations.map(x=>x.page))].join(", ");w.appendChild(c)}
     if(r.estimate){
       const e=r.estimate,c=document.createElement("div");c.className="cite";
-      c.textContent=e.steps.map(s=>s.label+": "+s.math+" = $"+s.amount+(s.source_page?" (plan p."+s.source_page+")":"")).join("\n")+"\nYou pay about $"+e.member_pays+". This is an estimate, not a guarantee.";
+      c.textContent=e.steps.map(s=>s.label+": "+s.math+(s.source_page?" (plan p."+s.source_page+")":"")).join("\n")+"\nYou pay about $"+e.member_pays+". This is an estimate, not a guarantee.";
       w.appendChild(c)}
   }catch(e){w.textContent="Sorry, that didn't work: "+e.message}
   $("send").disabled=false;$("estBtn").disabled=false}
