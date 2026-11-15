@@ -17,19 +17,21 @@ h2{margin:0 0 8px;font-size:1.05rem}
 button{background:var(--teal);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-size:1rem;cursor:pointer}
 button.alt{background:#e3f1f3;color:var(--blue)}
 button:disabled{opacity:.5}
-input{font:inherit;padding:9px;border:1px solid var(--line);border-radius:10px;width:100%}
+input,select{font:inherit;padding:9px;border:1px solid var(--line);border-radius:10px;width:100%}
 label{display:block;font-size:.85rem;color:var(--mut);margin-top:8px}
 #log{min-height:220px;max-height:55vh;overflow:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
 .msg{padding:9px 12px;border-radius:14px;max-width:88%;white-space:pre-wrap}
 .me{align-self:flex-end;background:var(--blue);color:#fff}
 .bot{align-self:flex-start;background:#e8f4f5}
-.cite{font-size:.8rem;color:var(--mut);margin-top:4px}
-.row{display:flex;gap:8px}
+.cite{font-size:.85rem;color:var(--mut);margin-top:6px;white-space:pre-line}
+.row{display:flex;gap:8px;flex-wrap:wrap}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
 .hide{display:none}
 .note{font-size:.8rem;color:var(--mut)}
 .bar{height:10px;background:#dbe9ed;border-radius:6px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--teal)}
+#svc{flex:2;min-width:160px}
+#amt{flex:1;min-width:90px}
 :focus-visible{outline:3px solid #f5a623;outline-offset:2px}
 </style>
 </head>
@@ -56,9 +58,16 @@ label{display:block;font-size:.85rem;color:var(--mut);margin-top:8px}
 <div class="chips" id="chips"></div>
 <div id="log" aria-live="polite"></div>
 <form class="row" id="chatForm">
-<input id="q" placeholder="Ask about your coverage…" aria-label="Your question" autocomplete="off">
+<input id="q" placeholder="Ask about your coverage…" aria-label="Your question" autocomplete="off" style="flex:1">
 <button id="send">Send</button>
 </form>
+<h2 style="margin-top:14px">Estimate what you would pay</h2>
+<div class="row">
+<select id="svc" aria-label="Service"></select>
+<input id="amt" type="number" min="0" step="any" aria-label="Allowed amount in dollars">
+<button id="estBtn" type="button" class="alt">Estimate my cost</button>
+</div>
+<p class="note">Amounts are illustrative demo prices. Change the amount if you know the real one.</p>
 </section>
 </div>
 <aside class="card">
@@ -70,7 +79,7 @@ label{display:block;font-size:.85rem;color:var(--mut);margin-top:8px}
 <script>
 const $=id=>document.getElementById(id);
 const sid="s"+Math.random().toString(36).slice(2,12);
-let plan=null,pages=[];
+let plan=null,pages=[],services=[];
 const FIELDS=[["deductible","Deductible ($)"],["out_of_pocket_max","Out-of-pocket max ($)"],["coinsurance_pct","Coinsurance (% you pay)"],["copay_primary_care","Primary care copay ($)"],["copay_specialist","Specialist copay ($)"],["copay_er","Emergency room copay ($)"]];
 const val=x=>x&&typeof x==="object"?x.value:x;
 async function api(url,opts){
@@ -120,21 +129,37 @@ $("confirmBtn").onclick=async()=>{
 function bubble(t,c){const d=document.createElement("div");d.className="msg "+c;d.textContent=t;$("log").appendChild(d);$("log").scrollTop=1e9;return d}
 function startChat(){
   const box=$("chips");if(box.children.length)return;
-  ["What is my deductible?","What is my copay for a specialist?","Estimate a primary care visit costing $200"].forEach(t=>{
+  ["What is my deductible?","What is my copay for a specialist?","What is my out-of-pocket maximum?"].forEach(t=>{
     const b=document.createElement("button");b.type="button";b.className="alt";b.textContent=t;b.onclick=()=>ask(t);box.appendChild(b)});
-  bubble("Your plan is confirmed. Ask me anything about your coverage. Estimates are estimates, not guarantees.","bot")}
-async function ask(t){
+  bubble("Your plan is confirmed. Ask me anything about your coverage, or use the estimate box below. Estimates are estimates, not guarantees.","bot")}
+async function ask(t,est){
   if(!t.trim())return;
-  bubble(t,"me");$("q").value="";$("send").disabled=true;
+  bubble(t,"me");$("q").value="";$("send").disabled=true;$("estBtn").disabled=true;
   const w=bubble("Thinking…","bot");
   try{
-    const r=await api("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_id:sid,message:t})});
+    const body=est?{session_id:sid,message:t,estimate_input:est}:{session_id:sid,message:t};
+    const r=await api("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
     w.textContent=r.answer;
     if(r.citations&&r.citations.length){const c=document.createElement("div");c.className="cite";c.textContent="Source: page "+[...new Set(r.citations.map(x=>x.page))].join(", ");w.appendChild(c)}
-    if(r.estimate){const e=r.estimate,c=document.createElement("div");c.className="cite";c.textContent="Steps: "+e.steps.map(s=>s.label+" ("+s.math+") = $"+s.amount).join(" → ")+" | You pay about $"+e.member_pays+" (estimate)";w.appendChild(c)}
+    if(r.estimate){
+      const e=r.estimate,c=document.createElement("div");c.className="cite";
+      c.textContent=e.steps.map(s=>s.label+": "+s.math+" = $"+s.amount+(s.source_page?" (plan p."+s.source_page+")":"")).join("\n")+"\nYou pay about $"+e.member_pays+". This is an estimate, not a guarantee.";
+      w.appendChild(c)}
   }catch(e){w.textContent="Sorry, that didn't work: "+e.message}
-  $("send").disabled=false}
+  $("send").disabled=false;$("estBtn").disabled=false}
 $("chatForm").onsubmit=ev=>{ev.preventDefault();ask($("q").value)};
+function fillAmt(){const x=services[$("svc").value];if(x)$("amt").value=x.illustrative_allowed_amount}
+async function loadServices(){
+  try{
+    const d=await api("/api/services");services=d.services||[];
+    services.forEach((x,i)=>{const o=document.createElement("option");o.value=i;o.textContent=x.service_name;$("svc").appendChild(o)});
+    fillAmt()
+  }catch(e){}}
+$("svc").onchange=fillAmt;
+$("estBtn").onclick=()=>{
+  const x=services[$("svc").value];if(!x)return;
+  ask("Estimate my cost for: "+x.service_name,{service:x.service_name,allowed_amount:Number($("amt").value),kind:x.kind,copay_type:x.copay_type})};
+loadServices();
 </script>
 </body>
 </html>
