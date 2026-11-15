@@ -39,10 +39,10 @@ Gemini is our only AI model. It is used in three places, and in each one code, n
 
 **Insurer profiles ("learning" without training).** The app detects the insurer from the first pages by keywords and gives extraction layout hints for that insurer. A profile is updated only from numbers the user has confirmed (no PDF text, no personal info). Profiles are currently held in memory and seeded with our synthetic plans. Insurer averages are never used in a user's own estimate.
 
-**Models and limits.** Main model: `gemini-3.6-flash`, with other Gemini models as automatic fallbacks if one is busy or out of quota. The API key lives only in a server environment variable or a gitignored `.env`.
+**Models and limits.** Preferred model: `gemini-3.6-flash` (the live demo server runs `gemini-3.5-flash-lite` on a free-tier key), with other Gemini models as automatic fallbacks if one is busy or out of quota. The API key lives only in a server environment variable or a gitignored `.env`.
 
 ### Evaluation
-16 synthetic cases (4 plan extraction, 10 chat, 2 bill audits), including prompt injection, off-topic, reveal-the-prompt and missing-data cases. Each case is run 3 times with plain-code checks (no AI judge). Latest result on `gemini-3.6-flash`: **pass@1 100%, pass^3 100%** (16/16 cases, 48/48 attempts).
+16 synthetic cases (4 plan extraction, 10 chat, 2 bill audits), including prompt injection, off-topic, reveal-the-prompt and missing-data cases. Each case is run 3 times with plain-code checks (no AI judge). Latest result (model rotation was active, so some calls may have run on backup Gemini models when a free-tier daily limit was hit): **pass@1 100%, pass^3 100%** (16/16 cases, 48/48 attempts).
 
 Honest limits: the set is small and synthetic, and it tests the AI functions directly, not the full web app. One chat check (`chat-pvs-oop`) was loosened after we confirmed the plan text really says the maximum is printed in the Certificate of Coverage rather than given as a number.
 
