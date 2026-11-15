@@ -329,4 +329,9 @@ from fastapi.responses import FileResponse as _FileResponse
 
 @app.get("/", include_in_schema=False)
 def home():
-    return _FileResponse(_Path(__file__).resolve().parents[2] / "frontend" / "index.html")
+    return _FileResponse(_Path(__file__).resolve().parents[2] / "site" / "index.html")
+
+
+from fastapi.staticfiles import StaticFiles as _StaticFiles
+
+app.mount("/", _StaticFiles(directory=str(_Path(__file__).resolve().parents[2] / "site"), html=True), name="site")
