@@ -217,3 +217,15 @@
 .ua11y-colorblind #app .danger {
   color: var(--ua11y-orange-ink);
 }
+
+/* Colorblind: swap the app's green palette for blue, on every page */
+html.ua11y-colorblind:root {
+  --ink: #1d3a4f;
+  --muted: #4f6577;
+  --green: #005f94;
+  --deep: #004a75;
+  --line: #d3e0ea;
+  --bg: #f4f8fb;
+  --tint: #e6f1f9;
+}
+
